@@ -102,6 +102,9 @@ int main(int argc, char *argv[]){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
         progress = num_particles > 20000 ? 500000 : (num_particles > 5000 ? 10000 : (num_particles/10));
+		if (progress < 10){
+			progress = 1;
+		}
         ring_size = 1;
     }
 
@@ -151,9 +154,10 @@ int main(int argc, char *argv[]){
         }
     #endif
 
-    srand((unsigned)time(NULL)); // Set random seed 
     #ifdef DEBUG
         srand(0);
+	#else
+    	srand((unsigned)time(NULL)); // Set random seed 
     #endif
 
     printf("Allocating Memory...\n");
@@ -187,10 +191,14 @@ int main(int argc, char *argv[]){
                 dir = ((double)rand() / (double)RAND_MAX) * 2 * Pi; // Random value from 0 to 2 Pi that indicates the direction of movement.
                 step(selected_cluster, dir);
             }
+			else{
+				selected_cluster = selectClusterMass();
+				dir = ((double)rand() / (double)RAND_MAX) * 2 * Pi; // Random value from 0 to 2 Pi that indicates the direction of movement.
+				step(selected_cluster, dir);
+			}
             // Deletion Loop
             while(z1_particles != NULL){
                 z1_particles = pop(z1_particles);
-                step_cluster = True;
             }
             
         }
@@ -270,6 +278,12 @@ int main(int argc, char *argv[]){
                 fclose(fm);
             #endif
         }
+
+		if(steps_taken >= (int)(lat_size * 1000000 * 0.4)){
+			printf("Stopped after too many steps: %d\n",steps_taken);
+			break;
+		}
+
 
 
         #ifdef GIF
@@ -554,9 +568,9 @@ void addToCellList(Particle *particle){
 // Removes one particle from the cell list (to later be placed again after moving)
 void resetCellListElement(Particle *particle){
     int current;
-    int position = (*particle).k;
-
-    current =  cell_list[position];
+    int position = particle->k;
+	printf("Pos %d: \tx: %lf \ty: %lf \n", position, particle->x, particle->y);
+    current = cell_list[position];
     while (current != -1){
         if (current - cells2 == (*particle).number){
             break;
@@ -577,38 +591,41 @@ void resetCellListElement(Particle *particle){
 
 // Removes one particle from the next particle list (since it separates from the cluster)
 void resetParticleInLists(Particle *particle){
-    int current;
+    int current, prev;
     int position = particle->index;
 
-    current =  nextp[position];
+    current =  firstp[position];
 
-    if (position == firstp[position]){
+    if (particle->number == firstp[position]){
         firstp[position] = nextp[position];
     }
+	else{
+		while (current != -1){
+			if (current == particle->number){
+				break;
+			} 
 
-    while (current != -1){
-        if (current == particle->number){
-            break;
-        } 
+			position = current;
+			current = nextp[position];
+		} // Runs until the specified particle is found
 
-        position = current;
-        current = nextp[position];
-    } // Runs until the specified particle is found
+		while (current != -1){
+			nextp[position] = nextp[current];
+			nextp[current] = -1;
+			
+			prev = position;
+			position = current;
+			current = nextp[position];
+		} // After the particle is found all next values are "shifted" one node to the left, removing the node with the particle of interest.
+		if (particle->number == lastp[particle->index]){
+			lastp[particle->index] = prev;
+		}
+	}
 
-    while (current != -1){
-        nextp[position] = nextp[current];
-        nextp[current] = -1;
-
-        position = current;
-        current = nextp[position];
-    } // After the particle is found all next values are "shifted" one node to the left, removing the node with the particle of interest.
-
-    if (particle->index == lastp[position]){
-        lastp[particle->index] = nextp[current];
-    }
-
-    nextp[number_of_clusters] = particle->number;
-
+	firstp[number_of_clusters - 1] = particle->number;
+    nextp[particle->number] = -1;
+	lastp[number_of_clusters - 1]  = particle->number;
+	
 }
 
 // When joining clusters the masses are joined to change the value of the denominator correspondingly
@@ -682,7 +699,7 @@ int findAdjacentParticle(int number){
             dy += lat_size;
 
         dist = (dx * dx) + (dy * dy);
-        if ((dist <= ring_size) && (particle_list[particle].number != number)){
+        if ((dist <= ring_size + 0.05) && (particle_list[particle].number != number)){
             adjacent = particle;
             break;
         }
@@ -953,16 +970,16 @@ void joinClusters(int c1, int c2){
 
 void separateCluster(int number){
     int adjacent_particle = findAdjacentParticle(number);
+    ++number_of_clusters;
     --particle_list[number].coordination_number;
     --particle_list[adjacent_particle].coordination_number;
     resetParticleInLists(particle_list + number);
-    ++number_of_clusters;
     
     particle_list[number].index = number_of_clusters;
-    cluster_list[number_of_clusters].mass = 1;
-    cluster_list[number_of_clusters].cx = particle_list[number].x;
-    cluster_list[number_of_clusters].cy = particle_list[number].y;
-    cluster_list[number_of_clusters].rg2 = 0;
+    cluster_list[number_of_clusters-1].mass = 1;
+    cluster_list[number_of_clusters-1].cx = particle_list[number].x;
+    cluster_list[number_of_clusters-1].cy = particle_list[number].y;
+    cluster_list[number_of_clusters-1].rg2 = 0;
     printf("Reach\n");
 }
 
