@@ -82,7 +82,11 @@ int main(int argc, char *argv[]){
 
 	struct stat r = {0};
     if (stat("/Results", &r) == -1){
-        mkdir("Results", 0777);
+        #ifdef __unix__
+            mkdir("Results", 0777);
+        #else
+            mkdir("Results");
+		#endif
     }
     char result_file_name[80];
     FILE *f;
