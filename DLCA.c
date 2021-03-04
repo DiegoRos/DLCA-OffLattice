@@ -87,7 +87,7 @@ int main(int argc, char *argv[]){
     // Create partial result directory if directory does not exist
     struct stat pr = {0};
     if (stat("/Partial Results", &pr) == -1){
-        mkdir("Partial Results");
+        mkdir("Partial Results", 0777);
     }
     char middle_file_name[80];
     FILE *fm;
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]){
             // This will contain all partial results advancements in csv format to then be processed and graphed by python.
         struct stat a = {0};
         if (stat("/Animation", &a) == -1){
-            mkdir("Animation");
+            mkdir("Animation", 0777);
         }
     #endif
 
@@ -287,7 +287,7 @@ int main(int argc, char *argv[]){
         // Create result directory if directory does not exist
     struct stat r = {0};
     if (stat("/Results", &r) == -1){
-        mkdir("Results");
+        mkdir("Results", 0777);
     }
 
     char resultrg_file_name[80];
