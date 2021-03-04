@@ -64,7 +64,7 @@ dkms.conf
 
 #Generic Directories
 .vscode/
-_pycache__/
+__pycache__/
 
 #Result Directories
 Animation/
