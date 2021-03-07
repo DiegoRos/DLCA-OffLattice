@@ -568,8 +568,8 @@ void addToCellList(Particle *particle){
 // Removes one particle from the cell list (to later be placed again after moving)
 void resetCellListElement(Particle *particle){
     int current;
-    int position = particle->k;
-	printf("Pos %d: \tx: %lf \ty: %lf \n", position, particle->x, particle->y);
+    int position = (*particle).k;
+
     current = cell_list[position];
     while (current != -1){
         if (current - cells2 == (*particle).number){
@@ -597,7 +597,7 @@ void resetParticleInLists(Particle *particle){
     current =  firstp[position];
 
     if (particle->number == firstp[position]){
-        firstp[position] = nextp[position];
+        firstp[position] = nextp[firstp[position]];
     }
 	else{
 		while (current != -1){
@@ -975,7 +975,7 @@ void separateCluster(int number){
     --particle_list[adjacent_particle].coordination_number;
     resetParticleInLists(particle_list + number);
     
-    particle_list[number].index = number_of_clusters;
+    particle_list[number].index = number_of_clusters-1;
     cluster_list[number_of_clusters-1].mass = 1;
     cluster_list[number_of_clusters-1].cx = particle_list[number].x;
     cluster_list[number_of_clusters-1].cy = particle_list[number].y;
