@@ -1,7 +1,7 @@
 all: DLCA FracDimDLCA Percolates
 
 DLCA: DLCA.c
-	gcc DLCA.c -D DEBUG -o DLCA -lm
+	gcc DLCA.c -o DLCA -lm
 
 FracDimDLCA: FracDimDLCA.c
 	gcc FracDimDLCA.c -o FracDimDLCA -lm

@@ -16,7 +16,7 @@ int lat_size; // Size of lattice of the system
 int ring_size; // Diameter of particles and the distance of interaction between them
 int progress; // Gives the amount of steps required to save a progress csv and to print an update to the console
 int gif; // Boolean to check if csv for a gif are required
-float prob_desacoplar = 0.1;
+float prob_desacoplar = 0.01;
 
 
 int number_of_clusters; // The current number of clusters in the system
@@ -186,8 +186,7 @@ int main(int argc, char *argv[]){
 
             if(rand_val < prob_desacoplar){
                 separateCluster(get(z1_particles, rand_z1));
-                printf("Reach\n");
-                selected_cluster = number_of_clusters;
+                selected_cluster = number_of_clusters-1;
                 dir = ((double)rand() / (double)RAND_MAX) * 2 * Pi; // Random value from 0 to 2 Pi that indicates the direction of movement.
                 step(selected_cluster, dir);
             }
@@ -622,9 +621,9 @@ void resetParticleInLists(Particle *particle){
 		}
 	}
 
-	firstp[number_of_clusters - 1] = particle->number;
+	firstp[number_of_clusters] = particle->number;
     nextp[particle->number] = -1;
-	lastp[number_of_clusters - 1]  = particle->number;
+	lastp[number_of_clusters]  = particle->number;
 	
 }
 
@@ -666,7 +665,7 @@ int selectClusterMass(){
 
 Stack * findZ1Particles(int selected_cluster, Stack *z1_particles, int *count){
     *count = 0;
-    int particle = firstp[selected_cluster];
+    int particle = firstp[particle_list[selected_cluster].index];
     while (particle != -1){
         if (particle_list[particle].coordination_number == 1){
             z1_particles = push(particle, z1_particles);
@@ -699,7 +698,7 @@ int findAdjacentParticle(int number){
             dy += lat_size;
 
         dist = (dx * dx) + (dy * dy);
-        if ((dist <= ring_size + 0.05) && (particle_list[particle].number != number)){
+        if ((dist <= ring_size + 0.08) && (particle_list[particle].number != number)){
             adjacent = particle;
             break;
         }
@@ -969,18 +968,26 @@ void joinClusters(int c1, int c2){
 }
 
 void separateCluster(int number){
+	int lc_mass = cluster_list[particle_list[number].index].mass;
+
+	int sc_mass = 1;
     int adjacent_particle = findAdjacentParticle(number);
-    ++number_of_clusters;
     --particle_list[number].coordination_number;
     --particle_list[adjacent_particle].coordination_number;
     resetParticleInLists(particle_list + number);
     
-    particle_list[number].index = number_of_clusters-1;
-    cluster_list[number_of_clusters-1].mass = 1;
-    cluster_list[number_of_clusters-1].cx = particle_list[number].x;
-    cluster_list[number_of_clusters-1].cy = particle_list[number].y;
-    cluster_list[number_of_clusters-1].rg2 = 0;
-    printf("Reach\n");
+    particle_list[number].index = number_of_clusters;
+    cluster_list[number_of_clusters].mass = 1;
+    cluster_list[number_of_clusters].cx = particle_list[number].x;
+    cluster_list[number_of_clusters].cy = particle_list[number].y;
+    cluster_list[number_of_clusters].rg2 = 0;
+
+	denominator += (-1 / (double)lc_mass) + (1 / (double)(lc_mass - 1)) + 1;
+	mass_list[lc_mass - 1]--;
+	mass_list[lc_mass - 2]++;
+	mass_list[0]++;
+
+    ++number_of_clusters;
 }
 
 // Function that gives the position of all particles in a cluster utilizing the linked list
