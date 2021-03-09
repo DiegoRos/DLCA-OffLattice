@@ -16,7 +16,7 @@ int lat_size; // Size of lattice of the system
 int ring_size; // Diameter of particles and the distance of interaction between them
 int progress; // Gives the amount of steps required to save a progress csv and to print an update to the console
 int gif; // Boolean to check if csv for a gif are required
-float prob_desacoplar = 0.05;
+float prob_desacoplar;
 
 
 int number_of_clusters; // The current number of clusters in the system
@@ -98,9 +98,18 @@ int main(int argc, char *argv[]){
 
 
     // Options for argv when running executable
-    if (argc == 3){
+
+    if (argc < 3){
+        printf("Not enough arguments entered when running DLCA.c executable.\n");
+        printf("When running executable in cmd the order of entries is as follows: \n");
+        printf("<Executable Name> <number of particles> <lattice size> <ring size> <progress>\n");
+        exit(0);
+    }
+
+    else if (argc == 3){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
+        prob_desacoplar = 0;
         progress = num_particles > 20000 ? 500000 : (num_particles > 5000 ? 10000 : (num_particles/10));
 		if (progress < 10){
 			progress = 1;
@@ -111,31 +120,32 @@ int main(int argc, char *argv[]){
     else if (argc == 4){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
-        progress = atoi(argv[3]);
+        prob_desacoplar = atof(argv[3]);
+        progress = num_particles > 20000 ? 500000 : (num_particles > 5000 ? 10000 : (num_particles/10));
         ring_size = 1;
     }
 
     else if (argc == 5){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
-        progress = atoi(argv[3]);
-        ring_size = atoi(argv[4]);
+        prob_desacoplar = atof(argv[3]);
+        progress = atoi(argv[4]);
+        ring_size = 1;
+    }
+
+    else if (argc == 6){
+        lat_size = atoi(argv[1]);
+        num_particles = atoi(argv[2]);
+        prob_desacoplar = atof(argv[3]);
+        progress = atoi(argv[4]);
+        ring_size = atoi(argv[5]);
     }
 
     else{
-        if (argc < 3){
-        printf("Not enough arguments entered when running DLCA.c executable.\n");
+        printf("Too many arguments entered when running DLCA.c executable.\n");
         printf("When running executable in cmd the order of entries is as follows: \n");
         printf("<Executable Name> <number of particles> <lattice size> <ring size> <progress>\n");
         exit(0);
-        }
-
-        else if (argc  > 5){
-            printf("Too many arguments entered when running DLCA.c executable.\n");
-            printf("When running executable in cmd the order of entries is as follows: \n");
-            printf("<Executable Name> <number of particles> <lattice size> <ring size> <progress>\n");
-            exit(0);
-        }
     }
 
     // Creation of animation files if required
@@ -176,17 +186,17 @@ int main(int argc, char *argv[]){
     int steps_taken = 0;
 
     while(number_of_clusters != 1){
-         selected_cluster = rand() % number_of_clusters; // Random cluster index from remaining clusters
-
-        z1_particles = findZ1Particles(selected_cluster, z1_particles, z1_count);
-	
+        if(prob_desacoplar != 0){//Condition to speed up code if the probability is 0
+            selected_cluster = ((double)rand() / (double)RAND_MAX) * number_of_clusters; // Random cluster index from remaining clusters
+            z1_particles = findZ1Particles(selected_cluster, z1_particles, z1_count);
+        }
         if (z1_particles != NULL){
-            rand_z1 = rand() % (*z1_count);
             rand_val = (double)rand() / (double)RAND_MAX;
 
             if(rand_val < prob_desacoplar){
+                rand_z1 = ((double)rand() / (double)RAND_MAX) * (*z1_count);
                 separateCluster(get(z1_particles, rand_z1));
-                selected_cluster = number_of_clusters-1;
+                selected_cluster = number_of_clusters - 1;
                 dir = ((double)rand() / (double)RAND_MAX) * 2 * Pi; // Random value from 0 to 2 Pi that indicates the direction of movement.
                 step(selected_cluster, dir);
             }
@@ -195,12 +205,13 @@ int main(int argc, char *argv[]){
 				dir = ((double)rand() / (double)RAND_MAX) * 2 * Pi; // Random value from 0 to 2 Pi that indicates the direction of movement.
 				step(selected_cluster, dir);
 			}
+
             // Deletion Loop
             while(z1_particles != NULL){
                 z1_particles = pop(z1_particles);
-            }
-            
+            }    
         }
+
         else{
             selected_cluster = selectClusterMass();
             dir = ((double)rand() / (double)RAND_MAX) * 2 * Pi; // Random value from 0 to 2 Pi that indicates the direction of movement.
@@ -651,7 +662,7 @@ int selectClusterMass(){
 
     // Do while loop to select cluster to move, if the probability of the cluster is higher than z the cluster moves.
     do{
-        selected_cluster = rand() % (number_of_clusters); // Random cluster index from remaining clusters
+        selected_cluster = ((double)rand() / (double)RAND_MAX) * (number_of_clusters); // Random cluster index from remaining clusters
 
         prob_num = mass_list[cluster_list[selected_cluster].mass - 1] * (A);
         prob_den = cluster_list[selected_cluster].mass;

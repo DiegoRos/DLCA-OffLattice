@@ -33,8 +33,8 @@ def plot(lat_size, particles, file_name, center = False):
 
 
 if __name__ == "__main__":
-    lat_size = 15
-    particles = 10
+    lat_size = 128
+    particles = 524
     # file_name = f"Results/ClusterSize{lat_size}Particles{particles}.csv"
     file_name = f"Partial Results/PartialClusterSize{lat_size}Particles{particles}.csv"
     # file_name = f"Results/EdgeClusterSize{lat_size}Particles{particles}.csv"
