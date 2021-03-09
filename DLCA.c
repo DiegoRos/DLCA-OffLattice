@@ -179,7 +179,7 @@ int main(int argc, char *argv[]){
          selected_cluster = rand() % number_of_clusters; // Random cluster index from remaining clusters
 
         z1_particles = findZ1Particles(selected_cluster, z1_particles, z1_count);
-
+	
         if (z1_particles != NULL){
             rand_z1 = rand() % (*z1_count);
             rand_val = (double)rand() / (double)RAND_MAX;
@@ -665,7 +665,7 @@ int selectClusterMass(){
 
 Stack * findZ1Particles(int selected_cluster, Stack *z1_particles, int *count){
     *count = 0;
-    int particle = firstp[particle_list[selected_cluster].index];
+    int particle = firstp[selected_cluster];
     while (particle != -1){
         if (particle_list[particle].coordination_number == 1){
             z1_particles = push(particle, z1_particles);
@@ -699,7 +699,7 @@ int findAdjacentParticle(int number){
             dy += lat_size;
 
         dist = (dx * dx) + (dy * dy);
-        if (dist < min_dist){
+        if ((dist < min_dist) && (number != particle)){
             adjacent = particle;
 			min_dist = dist;
         }

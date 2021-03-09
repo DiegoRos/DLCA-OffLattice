@@ -54,10 +54,14 @@ Stack * pop(Stack *s){
 }
 
 int imprimirStack(Stack *s){
-	while (s != NULL){
+	if (s == NULL){
+		printf("The list is empty.\n");
+		return 1;
+	}
+	do{
 		printf("Num: %i\n", s->number);
 		s = s->next;
-	}
+	}while(s != NULL);
 
 	return 0;
 }
