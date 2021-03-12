@@ -583,20 +583,14 @@ void resetCellListElement(Particle *particle){
     current = cell_list[position];
     while (current != -1){
         if (current - cells2 == (*particle).number){
+			cell_list[position] = cell_list[current];
+			cell_list[current] = -1;
             break;
         } 
 
         position = current;
         current = cell_list[position];
     } // Runs until the specified particle is found
-
-    while (current != -1){
-        cell_list[position] = cell_list[current];
-        cell_list[current] = -1;
-
-        position = current;
-        current = cell_list[position];
-    } // After the particle is found all next values are "shifted" one node to the left, removing the node with the particle of interest.
 }
 
 // Removes one particle from the next particle list (since it separates from the cluster)
@@ -620,6 +614,7 @@ void resetParticleInLists(Particle *particle){
 		} // Runs until the specified particle is found
 		
 		nextp[position] = nextp[current];
+		nextp[current] = -1;
 
 		while (current != -1){
 			prev = position;
