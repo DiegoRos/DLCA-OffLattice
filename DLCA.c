@@ -618,11 +618,10 @@ void resetParticleInLists(Particle *particle){
 			position = current;
 			current = nextp[position];
 		} // Runs until the specified particle is found
+		
+		nextp[position] = nextp[current];
 
 		while (current != -1){
-			nextp[position] = nextp[current];
-			nextp[current] = -1;
-			
 			prev = position;
 			position = current;
 			current = nextp[position];
