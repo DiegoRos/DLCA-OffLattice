@@ -56,7 +56,7 @@ void initialize();
 void setKlist(int k, int *kptr);
 void addToCellList(Particle *particle);
 void resetCellListElement(Particle *particle);
-void resetParticleInLists(Particle *particle);
+void resetParticleInLists(int number);
 void changeDenominator(int mass1, int mass2);
 void changeMassList(int mass1, int mass2);
 void setA();
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]){
     #endif
 
     #ifdef DEBUG
-        srand(0);
+        srand(1);
 	#else
     	srand((unsigned)time(NULL)); // Set random seed 
     #endif
@@ -177,7 +177,8 @@ int main(int argc, char *argv[]){
 
     int selected_cluster;
     Stack *z1_particles = NULL;
-    int *z1_count = (int *)malloc(sizeof(int)), rand_z1, rand_val;
+    int *z1_count = (int *)malloc(sizeof(int));
+    double rand_z1, rand_val;
     double dir; // Direction of step, will be changed every time step is called
     int *connecting_clusters = (int *)malloc(sizeof(int) * 4);
     int connected; // Boolean that checks if cluster connected
@@ -594,18 +595,19 @@ void resetCellListElement(Particle *particle){
 }
 
 // Removes one particle from the next particle list (since it separates from the cluster)
-void resetParticleInLists(Particle *particle){
+void resetParticleInLists(int number){
     int current, prev;
-    int position = particle->index;
+    int position = particle_list[number].index;
 
     current =  firstp[position];
 
-    if (particle->number == firstp[position]){
+    if (number == firstp[position]){
         firstp[position] = nextp[firstp[position]];
+        nextp[current] = -1;
     }
 	else{
 		while (current != -1){
-			if (current == particle->number){
+			if (current == number){
 				break;
 			} 
 
@@ -621,14 +623,13 @@ void resetParticleInLists(Particle *particle){
 			position = current;
 			current = nextp[position];
 		} // After the particle is found all next values are "shifted" one node to the left, removing the node with the particle of interest.
-		if (particle->number == lastp[particle->index]){
-			lastp[particle->index] = prev;
+		if (number == lastp[particle_list[number].index]){
+			lastp[particle_list[number].index] = prev;
 		}
 	}
 
-	firstp[number_of_clusters] = particle->number;
-    nextp[particle->number] = -1;
-	lastp[number_of_clusters]  = particle->number;
+	firstp[number_of_clusters] = number;
+	lastp[number_of_clusters]  = number;
 	
 }
 
@@ -981,7 +982,7 @@ void separateCluster(int number){
     int adjacent_particle = findAdjacentParticle(number);
     --particle_list[number].coordination_number;
     --particle_list[adjacent_particle].coordination_number;
-    resetParticleInLists(particle_list + number);
+    resetParticleInLists(number);
 	
 	--cluster_list[lc_index].mass;
 	//cluster_list[lc_index].cx = new_cx;

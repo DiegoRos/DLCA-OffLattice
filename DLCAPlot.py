@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -33,14 +34,34 @@ def plot(lat_size, particles, file_name, center = False):
 
 
 if __name__ == "__main__":
-    lat_size = 128
-    particles = 524
-    # file_name = f"Results/ClusterSize{lat_size}Particles{particles}.csv"
-    file_name = f"Partial Results/PartialClusterSize{lat_size}Particles{particles}.csv"
-    # file_name = f"Results/EdgeClusterSize{lat_size}Particles{particles}.csv"
-    # file_name = f"Partial Results/EdgePartialClusterSize{lat_size}Particles{particles}.csv"
-    # file_name = f"Partial Results/EdgePartialClusterSize{lat_size}Particles{particles}.csv"
+    if len(sys.argv) == 3:
+        lat_size = int(sys.argv[1])
+        particles = int(sys.argv[2])
+        chosen_file = '-m'
 
-    plot(lat_size, particles, file_name)
+    elif (len(sys.argv) == 4):
+        lat_size = int(sys.argv[1])
+        particles = int(sys.argv[2])
+        chosen_file = str(sys.argv[3])
+
+    else:
+        quit()
+
+    if chosen_file == '-m':
+        file_name = f"Results/ClusterSize{lat_size}Particles{particles}.csv"
+
+    elif chosen_file == '-p':
+        file_name = f"Partial Results/PartialClusterSize{lat_size}Particles{particles}.csv"
+
+    elif chosen_file == '-me':
+        file_name = f"Results/EdgeClusterSize{lat_size}Particles{particles}.csv"
+
+    elif chosen_file == '-pe':
+        file_name = f"Partial Results/EdgePartialClusterSize{lat_size}Particles{particles}.csv"
+    
+    else:
+        quit()
+
+    plot(lat_size, particles, file_name, center=True)
 
     plt.show()
