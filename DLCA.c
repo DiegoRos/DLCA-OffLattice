@@ -704,7 +704,7 @@ int findAdjacentParticle(int number){
         if (dy < (-lat_size / 2))
             dy += lat_size;
 
-        dist = (dx * dx) + (dy * dy);
+        dist = sqrt((dx * dx) + (dy * dy));
         if ((dist < min_dist) && (number != particle)){
             adjacent = particle;
 			min_dist = dist;
