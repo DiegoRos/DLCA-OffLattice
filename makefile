@@ -8,3 +8,8 @@ FracDimDLCA: FracDimDLCA.c
 
 Percolates: PercolatesDLCA.c
 	gcc PercolatesDLCA.c -o Percolates 
+
+Debug: DLCA.c
+	gcc DLCA.c -D DEBUG -o DLCA -lm
+	gcc -g -D DEBUG DLCA.c -lm
+

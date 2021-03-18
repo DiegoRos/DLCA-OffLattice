@@ -38,11 +38,20 @@ if __name__ == "__main__":
         lat_size = int(sys.argv[1])
         particles = int(sys.argv[2])
         chosen_file = '-m'
+        center = False
 
     elif (len(sys.argv) == 4):
         lat_size = int(sys.argv[1])
         particles = int(sys.argv[2])
         chosen_file = str(sys.argv[3])
+        center = False
+
+    elif(len(sys.argv) == 5):
+        lat_size = int(sys.argv[1])
+        particles = int(sys.argv[2])
+        chosen_file = str(sys.argv[3])
+        center = bool(sys.argv[4])
+        
 
     else:
         quit()
@@ -60,8 +69,8 @@ if __name__ == "__main__":
         file_name = f"Partial Results/EdgePartialClusterSize{lat_size}Particles{particles}.csv"
     
     else:
-        quit()
+        file_name = chosen_file
 
-    plot(lat_size, particles, file_name, center=True)
+    plot(lat_size, particles, file_name, center=center)
 
     plt.show()

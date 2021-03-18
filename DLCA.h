@@ -14,20 +14,6 @@
 // #define GIF 1
 // #define RGINFO 1
 
-typedef struct {
-    double x, y; // Particle position
-    int number, index; // Particle number (I.D.) and index (cluster I.D.)
-    int coordination_number; // Number of particles connected to it
-    int k; // Cell position of particle
-}Particle;
-
-typedef struct {
-    int mass; // Mass of cluster
-    double cx, cy; // Center of mass of cluster
-    double rg2; // Radius of Gyration squared of cluster
-}Cluster;
-
-
 // Stack struct with push and pop functions.
 typedef struct Stack{
 	int number; // Saves a particle number
@@ -68,7 +54,7 @@ int imprimirStack(Stack *s){
 
 int get(Stack *s, int pos){
     Stack *aux = s;
-	int i = 1;
+	int i = 0;
 	if (s == NULL){
 		printf("Error gets function recieved NULL stack\n");
 		exit(1);
@@ -80,3 +66,18 @@ int get(Stack *s, int pos){
 	}
     return aux->number;
 }
+
+
+typedef struct {
+    double x, y; // Particle position
+    int number, index; // Particle number (I.D.) and index (cluster I.D.)
+    int coordination_number; // Number of particles connected to it
+    int k; // Cell position of particle
+	Stack *neighbor;
+}Particle;
+
+typedef struct {
+    int mass; // Mass of cluster
+    double cx, cy; // Center of mass of cluster
+    double rg2; // Radius of Gyration squared of cluster
+}Cluster;

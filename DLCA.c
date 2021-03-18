@@ -17,6 +17,7 @@ int ring_size; // Diameter of particles and the distance of interaction between 
 int progress; // Gives the amount of steps required to save a progress csv and to print an update to the console
 int gif; // Boolean to check if csv for a gif are required
 float prob_desacoplar;
+int steps_taken = 0;
 
 
 int number_of_clusters; // The current number of clusters in the system
@@ -111,9 +112,11 @@ int main(int argc, char *argv[]){
         num_particles = atoi(argv[2]);
         prob_desacoplar = 0;
         progress = num_particles > 20000 ? 500000 : (num_particles > 5000 ? 10000 : (num_particles/10));
+
 		if (progress < 10){
 			progress = 1;
 		}
+
         ring_size = 1;
     }
 
@@ -122,6 +125,11 @@ int main(int argc, char *argv[]){
         num_particles = atoi(argv[2]);
         prob_desacoplar = atof(argv[3]);
         progress = num_particles > 20000 ? 500000 : (num_particles > 5000 ? 10000 : (num_particles/10));
+
+        if (progress < 10){
+			progress = 1;
+		}
+
         ring_size = 1;
     }
 
@@ -165,7 +173,7 @@ int main(int argc, char *argv[]){
     #endif
 
     #ifdef DEBUG
-        srand(0);
+        srand(2);
 	#else
     	srand((unsigned)time(NULL)); // Set random seed 
     #endif
@@ -176,7 +184,7 @@ int main(int argc, char *argv[]){
     initialize();
 
     int selected_cluster;
-    int sep = 0, break_cond = 0, separation = False;
+    int separation = False;
     Stack *z1_particles = NULL;
     int *z1_count = (int *)malloc(sizeof(int)), rand_z1;
     double rand_val;
@@ -185,18 +193,17 @@ int main(int argc, char *argv[]){
     int connected; // Boolean that checks if cluster connected
     int step_cluster; // Boolean that checks if cluster separated
     double *odist = (double *)malloc(sizeof(double));
-    int steps_taken = 0;
+    steps_taken = 0;
 
     while(number_of_clusters != 1){
         if(prob_desacoplar != 0){//Condition to speed up code if the probability is 0
-            selected_cluster = ((double)rand() / (double)RAND_MAX) * number_of_clusters; // Random cluster index from remaining clusters
+            selected_cluster = rand() % number_of_clusters; // Random cluster index from remaining clusters
             z1_particles = findZ1Particles(selected_cluster, z1_particles, z1_count);
         }
         if (z1_particles != NULL){
             rand_val = (double)rand() / (double)RAND_MAX;
 
             if(rand_val < prob_desacoplar){
-                sep++;
                 separation = True;
                 rand_z1 = rand() % (*z1_count);
                 int vecino = separateCluster(get(z1_particles, rand_z1));
@@ -217,7 +224,7 @@ int main(int argc, char *argv[]){
             // Deletion Loop
             while(z1_particles != NULL){
                 z1_particles = pop(z1_particles);
-            }    
+            }
         }
 
         if (!separation){
@@ -239,6 +246,10 @@ int main(int argc, char *argv[]){
                     particle_list[connecting_clusters[0]].coordination_number++;
                     particle_list[connecting_clusters[2]].coordination_number++; 
 
+                    particle_list[connecting_clusters[0]].neighbor = push(connecting_clusters[2], particle_list[connecting_clusters[0]].neighbor);
+                    particle_list[connecting_clusters[2]].neighbor = push(connecting_clusters[0], particle_list[connecting_clusters[2]].neighbor);
+
+
                     // join non overlaping cluster;
                     joinClusters(connecting_clusters[1], connecting_clusters[3]); 
                 }
@@ -257,20 +268,53 @@ int main(int argc, char *argv[]){
 
         #else
             if(connected){
-                if (*odist < 0){
-                    if (*odist < 0.5){
-                        break_cond++;
-                        printf("\tBREAK\t%lf\n", *odist);
-                    }
-                    // *odist = 0;
-                }
-
+                int kpar;
+                int test_part;
+                double p2x, p2y, dx, dy, dist;
                 // Before joining clusters are pushed back and the overlap is removed
                 stepBack(selected_cluster, odist, dir);
+
+                // int particle = firstp[selected_cluster];
+                // while (particle != -1){
+                //     for(int i = 0; i < k_next; i++){
+                //         kpar = k_list[particle_list[particle].k][i];
+                //         while (cell_list[kpar] != -1){
+                //             test_part = cell_list[kpar] - cells2;
+
+                //             p2x = particle_list[test_part].x;
+                //             p2y = particle_list[test_part].y;
+
+                //             dx = particle_list[particle].x - p2x;
+                //             dy = particle_list[particle].y - p2y;
+
+                //             if (dx > (lat_size / 2))
+                //                 dx -= lat_size;
+                //             if (dx < (-lat_size / 2))
+                //                 dx += lat_size;
+
+                //             if (dy > (lat_size / 2))
+                //                 dy -= lat_size;
+                //             if (dy < (-lat_size / 2))
+                //                 dy += lat_size;
+
+                //             dist = sqrt((dx * dx) + (dy * dy));
+                //             if ((dist < (double)ring_size) && (particle != test_part) && (connecting_clusters[2] != test_part) && (connecting_clusters[3] == particle_list[test_part].index)){
+                //                 particle_list[particle].coordination_number++;
+                //                 particle_list[test_part].coordination_number++;
+
+                //             }
+                //             kpar = cell_list[kpar];
+                //         }
+                //     }
+                //     particle = nextp[particle];
+                // }
 
                 // Add 1 to the coordination particle of the corresponding particles
                 particle_list[connecting_clusters[0]].coordination_number++;
                 particle_list[connecting_clusters[2]].coordination_number++; 
+
+                particle_list[connecting_clusters[0]].neighbor = push(connecting_clusters[2], particle_list[connecting_clusters[0]].neighbor);
+                particle_list[connecting_clusters[2]].neighbor = push(connecting_clusters[0], particle_list[connecting_clusters[2]].neighbor);
 
                 // join non overlaping cluster;
                 joinClusters(connecting_clusters[1], connecting_clusters[3]); 
@@ -331,8 +375,6 @@ int main(int argc, char *argv[]){
     free(connecting_clusters);
     free(z1_count);
     free(odist);
-
-    printf("Sep: %d Break: %d\n", sep, break_cond);
 
     // Save results
         // Create result directory if directory does not exist
@@ -460,6 +502,7 @@ void initialize(){
         particle_list[i].index = number_of_clusters;
         setK(particle_list + i);
         particle_list[i].coordination_number = 0;
+        particle_list[i].neighbor = NULL;
 
         // Places the particle (Cluster) on the firstp, nextp, and lastp lists
         firstp[number_of_clusters] = i;
@@ -614,7 +657,7 @@ void resetCellListElement(Particle *particle){
 
 // Removes one particle from the next particle list (since it separates from the cluster)
 void resetParticleInLists(int number){
-    int current, prev;
+    int current, i = 0;
     int position = particle_list[number].index;
 
     current =  firstp[position];
@@ -626,23 +669,22 @@ void resetParticleInLists(int number){
 	else{
 		while (current != -1){
 			if (current == number){
+                nextp[position] = nextp[current];
+		        nextp[current] = -1;
 				break;
 			} 
-
 			position = current;
 			current = nextp[position];
+            i++;
 		} // Runs until the specified particle is found
 		
-		nextp[position] = nextp[current];
-		nextp[current] = -1;
-
-		while (current != -1){
-			prev = position;
-			position = current;
-			current = nextp[position];
-		} // After the particle is found all next values are "shifted" one node to the left, removing the node with the particle of interest.
 		if (number == lastp[particle_list[number].index]){
-			lastp[particle_list[number].index] = prev;
+            if (i == 1){
+                lastp[particle_list[number].index] = position;
+            }
+            else{
+                lastp[particle_list[number].index] = position;
+            }
 		}
 	}
 
@@ -703,7 +745,8 @@ Stack * findZ1Particles(int selected_cluster, Stack *z1_particles, int *count){
 
 // Finds adjacent particle to a particle with coordination number = 1
 int findAdjacentParticle(int number){
-    int adjacent;
+    char middle_file_name[80];
+    int adjacent1 = -1, adjacent2 = -1;
 	double min_dist = lat_size;
     double dx, dy, dist;
 
@@ -724,13 +767,20 @@ int findAdjacentParticle(int number){
 
         dist = sqrt((dx * dx) + (dy * dy));
         if ((dist < min_dist) && (number != particle)){
-            adjacent = particle;
+            adjacent1 = particle;
 			min_dist = dist;
+        }
+        if ((dist < ring_size + 0.01) && (dist > ring_size - 0.01)){
+            adjacent2 = particle;
         }
 		
         particle = nextp[particle];
     }
-    return adjacent;
+
+    if (adjacent1 == -1)
+        adjacent1 = adjacent2;
+
+    return adjacent1;
 }
 
 // Function which takes a position and checks if this position is within interaction range of another particle
@@ -877,16 +927,18 @@ void checkParticle(int selected_particle, double dir, int *checked_clusters, dou
             p2x = (particle_list[test_part]).x;
             p2y = (particle_list[test_part]).y;
 
-            dx = fabs(p1x - p2x);
-            dy = fabs(p1y - p2y);
+            dx = p1x - p2x;
+            dy = p1y - p2y;
 
-            if (dx > (lat_size / 2)){
-                dx = lat_size - dx;
-            }
+            if (dx > (lat_size / 2))
+                dx -= lat_size;
+            if (dx < (-lat_size / 2))
+                dx += lat_size;
 
-            if (dy > (lat_size / 2)){
-                dy = lat_size - dy;
-            }
+            if (dy > (lat_size / 2))
+                dy -= lat_size;
+            if (dy < (-lat_size / 2))
+                dy += lat_size;
 
             dist = sqrt((dx * dx) + (dy * dy));
             if ((dist <= (double)ring_size) && (particle_list[selected_particle].index != particle_list[test_part].index)){
@@ -908,18 +960,29 @@ void checkParticle(int selected_particle, double dir, int *checked_clusters, dou
     }
 }
 
+
 // Calculates the overlap distance of two neigboring particles
 float overlapDist(double dist, double dir, double p1x, double p1y, double p2x, double p2y){
-    double x0 = p1x - (ring_size * cos(dir));
-    double y0 = p1y - (ring_size * sin(dir));
-    double x1 = fabs(((p2x - x0) * cos(dir)) + ((p2y - y0) * sin(dir)));
+    double x0 = periodicBoundaryConditions(p1x - (ring_size * cos(dir)));
+    double y0 = periodicBoundaryConditions(p1y - (ring_size * sin(dir)));
 
-    double new_odist = (x1 - sqrt((ring_size * ring_size) - (dist * dist) + ((x1 - ring_size) * (x1 - ring_size))));
+    double dx = p2x - x0;
+    double dy = p2y - y0;
+    if (dx > (lat_size / 2))
+        dx -= lat_size;
+    if (dx < (-lat_size / 2))
+        dx += lat_size;
 
-    if (new_odist < 0.5){
-        printf("\tBREAK\t%lf\n", new_odist);
-    }
-    return new_odist
+    if (dy > (lat_size / 2))
+        dy -= lat_size;
+    if (dy < (-lat_size / 2))
+        dy += lat_size;
+
+    double x1 = fabs((dx * cos(dir)) + (dy * sin(dir)));
+
+    double new_odist = x1 - sqrt((ring_size * ring_size) - (dist * dist) + ((x1 - ring_size) * (x1 - ring_size)));
+
+    return new_odist;
 }
 
 // Function to join two clusters by index
@@ -999,13 +1062,21 @@ void joinClusters(int c1, int c2){
 }
 
 int separateCluster(int number){
+    int adjacent_particle;
 	int lc_index =particle_list[number].index;
 	int lc_mass = cluster_list[lc_index].mass;
 
 	int sc_mass = 1;
-    int adjacent_particle = findAdjacentParticle(number);
+    // adjacent_particle = findAdjacentParticle(number);
+    adjacent_particle = particle_list[number].neighbor->number;
+
+    if(adjacent_particle == -1){
+        printf("This error\n");
+    }
+
     --particle_list[number].coordination_number;
     --particle_list[adjacent_particle].coordination_number;
+
     resetParticleInLists(number);
 	
 	--cluster_list[lc_index].mass;
@@ -1026,6 +1097,9 @@ int separateCluster(int number){
     setA();
 
     ++number_of_clusters;
+
+    pop(particle_list[number].neighbor);
+    pop(particle_list[adjacent_particle].neighbor);
 
     return adjacent_particle;
 }
