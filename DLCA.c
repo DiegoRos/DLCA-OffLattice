@@ -914,7 +914,12 @@ float overlapDist(double dist, double dir, double p1x, double p1y, double p2x, d
     double y0 = p1y - (ring_size * sin(dir));
     double x1 = fabs(((p2x - x0) * cos(dir)) + ((p2y - y0) * sin(dir)));
 
-    return (x1 - sqrt((ring_size * ring_size) - (dist * dist) + ((x1 - ring_size) * (x1 - ring_size))));
+    double new_odist = (x1 - sqrt((ring_size * ring_size) - (dist * dist) + ((x1 - ring_size) * (x1 - ring_size))));
+
+    if (new_odist < 0.5){
+        printf("\tBREAK\t%lf\n", new_odist);
+    }
+    return new_odist
 }
 
 // Function to join two clusters by index
