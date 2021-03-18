@@ -176,7 +176,7 @@ int main(int argc, char *argv[]){
     initialize();
 
     int selected_cluster;
-    int sep = 0, break_cond = 0;
+    int sep = 0, break_cond = 0, separation = False;
     Stack *z1_particles = NULL;
     int *z1_count = (int *)malloc(sizeof(int)), rand_z1;
     double rand_val;
@@ -197,6 +197,7 @@ int main(int argc, char *argv[]){
 
             if(rand_val < prob_desacoplar){
                 sep++;
+                separation = True;
                 rand_z1 = rand() % (*z1_count);
                 int vecino = separateCluster(get(z1_particles, rand_z1));
                 selected_cluster = number_of_clusters - 1;
@@ -212,25 +213,19 @@ int main(int argc, char *argv[]){
                 if (dy < (-lat_size / 2))
                     dy += lat_size;
                 dir = atan2(dy, dx); // Random value from 0 to 2 Pi that indicates the direction of movement.
-                step(selected_cluster, dir);
             }
-			else{
-				selected_cluster = selectClusterMass();
-				dir = ((double)rand() / (double)RAND_MAX) * 2 * Pi; // Random value from 0 to 2 Pi that indicates the direction of movement.
-				step(selected_cluster, dir);
-			}
-
             // Deletion Loop
             while(z1_particles != NULL){
                 z1_particles = pop(z1_particles);
             }    
         }
 
-        else{
+        if (!separation){
             selected_cluster = selectClusterMass();
-            dir = ((double)rand() / (double)RAND_MAX) * 2 * Pi; // Random value from 0 to 2 Pi that indicates the direction of movement.
-            step(selected_cluster, dir);
+            dir = ((double)rand() / (double)RAND_MAX) * 2 * Pi; // Random value from 0 to 2 Pi that indicates the direction of movement.   
         }
+
+        step(selected_cluster, dir);
 
         connected = checkCluster(selected_cluster, dir, connecting_clusters, odist);
 
@@ -263,8 +258,11 @@ int main(int argc, char *argv[]){
         #else
             if(connected){
                 if (*odist < 0){
-                    break_cond++;
-                    printf("\tBREAK\t%lf\n", *odist);
+                    if (*odist < 0.5){
+                        break_cond++;
+                        printf("\tBREAK\t%lf\n", *odist);
+                    }
+                    // *odist = 0;
                 }
 
                 // Before joining clusters are pushed back and the overlap is removed
@@ -327,7 +325,7 @@ int main(int argc, char *argv[]){
         #endif
 
         steps_taken++;
-        connected = 0;
+        connected = False;
     }
     printf("Total number of clusters %d\n", number_of_clusters);
     free(connecting_clusters);
