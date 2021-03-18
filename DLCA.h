@@ -68,7 +68,7 @@ int imprimirStack(Stack *s){
 
 int get(Stack *s, int pos){
     Stack *aux = s;
-	int i = 0;
+	int i = 1;
 	if (s == NULL){
 		printf("Error gets function recieved NULL stack\n");
 		exit(1);

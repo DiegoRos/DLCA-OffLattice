@@ -71,7 +71,7 @@ int checkCluster(int selected_cluster, double dir, int *clusters, double *odist)
 void checkParticle(int selected_particle, double dir, int *checked_clusters, double *odist);
 float overlapDist(double dist, double dir, double p1x, double p1y, double p2x, double p2y);
 void joinClusters(int c1, int c2);
-void separateCluster(int number);
+int separateCluster(int number);
 void posParticlesCluster(int lc_label, double *x_list, double *y_list);
 void centerOfMass(int particles, double *x_list, double *y_list, int *mass_list, double *cx, double *cy);
 void centerOfMassTwoPoints(int particles, double *x_list, double *y_list, int *mass_list, double *cx, double *cy);
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]){
     #endif
 
     #ifdef DEBUG
-        srand(1);
+        srand(0);
 	#else
     	srand((unsigned)time(NULL)); // Set random seed 
     #endif
@@ -176,9 +176,10 @@ int main(int argc, char *argv[]){
     initialize();
 
     int selected_cluster;
+    int sep = 0, break_cond = 0;
     Stack *z1_particles = NULL;
-    int *z1_count = (int *)malloc(sizeof(int));
-    double rand_z1, rand_val;
+    int *z1_count = (int *)malloc(sizeof(int)), rand_z1;
+    double rand_val;
     double dir; // Direction of step, will be changed every time step is called
     int *connecting_clusters = (int *)malloc(sizeof(int) * 4);
     int connected; // Boolean that checks if cluster connected
@@ -195,10 +196,22 @@ int main(int argc, char *argv[]){
             rand_val = (double)rand() / (double)RAND_MAX;
 
             if(rand_val < prob_desacoplar){
-                rand_z1 = ((double)rand() / (double)RAND_MAX) * (*z1_count);
-                separateCluster(get(z1_particles, rand_z1));
+                sep++;
+                rand_z1 = rand() % (*z1_count);
+                int vecino = separateCluster(get(z1_particles, rand_z1));
                 selected_cluster = number_of_clusters - 1;
-                dir = ((double)rand() / (double)RAND_MAX) * 2 * Pi; // Random value from 0 to 2 Pi that indicates the direction of movement.
+                double dx = particle_list[firstp[selected_cluster]].x - particle_list[vecino].x;
+                double dy = particle_list[firstp[selected_cluster]].y - particle_list[vecino].y;
+                if (dx > (lat_size / 2))
+                    dx -= lat_size;
+                if (dx < (-lat_size / 2))
+                    dx += lat_size;
+
+                if (dy > (lat_size / 2))
+                    dy -= lat_size;
+                if (dy < (-lat_size / 2))
+                    dy += lat_size;
+                dir = atan2(dy, dx); // Random value from 0 to 2 Pi that indicates the direction of movement.
                 step(selected_cluster, dir);
             }
 			else{
@@ -249,7 +262,12 @@ int main(int argc, char *argv[]){
 
         #else
             if(connected){
-               // Before joining clusters are pushed back and the overlap is removed
+                if (*odist < 0){
+                    break_cond++;
+                    printf("\tBREAK\t%lf\n", *odist);
+                }
+
+                // Before joining clusters are pushed back and the overlap is removed
                 stepBack(selected_cluster, odist, dir);
 
                 // Add 1 to the coordination particle of the corresponding particles
@@ -315,6 +333,8 @@ int main(int argc, char *argv[]){
     free(connecting_clusters);
     free(z1_count);
     free(odist);
+
+    printf("Sep: %d Break: %d\n", sep, break_cond);
 
     // Save results
         // Create result directory if directory does not exist
@@ -525,7 +545,7 @@ void setKlist(int k, int *kptr){
     } // West Border of lattice
 
     else if (k % lat_size == lat_size - 1){
-        int k_values[k_next] = {k - cells - 1, k - cells, k - (2 * cells) + 1, k - 1, 
+        int k_values[k_next] = {k - cells - 1, k - cells, k - (2 * lat_size) + 1, k - 1, 
                                 k, k - cells + 1, k + cells - 1, k + cells, k + 1};
         // kptr = k_values;
         for(int i = 0; i < k_next; ++i)
@@ -738,8 +758,8 @@ int checkSpot(double x, double y){
                     dy -= lat_size;
                 }
 
-                distance = (dx * dx) + (dy * dy);
-                if (distance <= ((double)(ring_size * ring_size))){
+                distance = sqrt((dx * dx) + (dy * dy));
+                if (distance <= (double)ring_size){
                     return False;
                 }
             }
@@ -844,13 +864,14 @@ int checkCluster(int selected_cluster, double dir, int *clusters, double *odist)
 // Chekcs if a particle from another cluster is in interaction range from it
 void checkParticle(int selected_particle, double dir, int *checked_clusters, double *odist){
     int test_part;
+    int i;
     double p1x = particle_list[selected_particle].x, p1y = particle_list[selected_particle].y; // Position of selected particle
     double p2x, p2y, dx, dy, dist;
 
     double new_odist;
 
     int kpar;
-    for(int i = 0; i < k_next; i++){
+    for(i = 0; i < k_next; i++){
         kpar = k_list[particle_list[selected_particle].k][i];
         while (cell_list[kpar] != -1){
             test_part = cell_list[kpar] - cells2;
@@ -870,7 +891,7 @@ void checkParticle(int selected_particle, double dir, int *checked_clusters, dou
             }
 
             dist = sqrt((dx * dx) + (dy * dy));
-            if ((dist <= (ring_size)) && (particle_list[selected_particle].index != particle_list[test_part].index)){
+            if ((dist <= (double)ring_size) && (particle_list[selected_particle].index != particle_list[test_part].index)){
                 new_odist = overlapDist(dist, dir, p1x, p1y, p2x, p2y); // Calculates distance
 
                 // If stored distance is less than the previos (more overlap) this particle becomes the connecting particle
@@ -974,7 +995,7 @@ void joinClusters(int c1, int c2){
 
 }
 
-void separateCluster(int number){
+int separateCluster(int number){
 	int lc_index =particle_list[number].index;
 	int lc_mass = cluster_list[lc_index].mass;
 
@@ -999,8 +1020,11 @@ void separateCluster(int number){
 	mass_list[lc_mass - 1]--;
 	mass_list[lc_mass - 2]++;
 	mass_list[0]++;
+    setA();
 
     ++number_of_clusters;
+
+    return adjacent_particle;
 }
 
 

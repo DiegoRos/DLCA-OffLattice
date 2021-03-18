@@ -69,6 +69,10 @@ dkms.conf
 #Generic Directories
 .vscode/
 __pycache__/
+.idea/
+*.iml
+*.xml
+
 
 #Result Directories
 Animation/
