@@ -34,42 +34,32 @@ def plot(lat_size, particles, file_name, center = False):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3:
-        lat_size = int(sys.argv[1])
-        particles = int(sys.argv[2])
-        chosen_file = '-m'
-        center = False
+    lat_size = int(sys.argv[1])
+    particles = int(sys.argv[2])
 
-    elif (len(sys.argv) == 4):
-        lat_size = int(sys.argv[1])
-        particles = int(sys.argv[2])
-        chosen_file = str(sys.argv[3])
-        center = False
+    if '-n' in sys.argv:
+        index = sys.argv.index('-n')
+        file_name = sys.argv[index + 1]
 
-    elif(len(sys.argv) == 5):
-        lat_size = int(sys.argv[1])
-        particles = int(sys.argv[2])
-        chosen_file = str(sys.argv[3])
-        center = bool(sys.argv[4])
-        
-
-    else:
-        quit()
-
-    if chosen_file == '-m':
+    elif '-m' in sys.argv:
         file_name = f"Results/ClusterSize{lat_size}Particles{particles}.csv"
 
-    elif chosen_file == '-p':
+    elif '-p' in sys.argv:
         file_name = f"Partial Results/PartialClusterSize{lat_size}Particles{particles}.csv"
 
-    elif chosen_file == '-me':
+    elif '-me' in sys.argv:
         file_name = f"Results/EdgeClusterSize{lat_size}Particles{particles}.csv"
 
-    elif chosen_file == '-pe':
+    elif '-pe' in sys.argv:
         file_name = f"Partial Results/EdgePartialClusterSize{lat_size}Particles{particles}.csv"
     
     else:
-        file_name = chosen_file
+        file_name = f"Results/ClusterSize{lat_size}Particles{particles}.csv"
+
+    if '-c' in sys.argv:
+        center = True
+    else:
+        center = False
 
     plot(lat_size, particles, file_name, center=center)
 
