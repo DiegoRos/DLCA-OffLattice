@@ -1063,7 +1063,7 @@ void joinClusters(int c1, int c2){
 
 int separateCluster(int number){
     int adjacent_particle;
-	int lc_index =particle_list[number].index;
+	int lc_index = particle_list[number].index;
 	int lc_mass = cluster_list[lc_index].mass;
 
 	int sc_mass = 1;
@@ -1098,18 +1098,8 @@ int separateCluster(int number){
     ++number_of_clusters;
 
     particle_list[number].neighbor = pop(particle_list[number].neighbor);
-
-    Stack *aux = particle_list[adjacent_particle].neighbor;
-    while(aux->number != number){
-        aux = aux->next;
-    }
-    if(aux == particle_list[adjacent_particle].neighbor){
-        particle_list[adjacent_particle].neighbor = pop(aux);
-    }
-    else{
-        pop(aux);
-    }
-    
+	
+	particle_list[adjacent_particle].neighbor = popVal(number, particle_list[adjacent_particle].neighbor);    
 
     return adjacent_particle;
 }

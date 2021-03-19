@@ -39,6 +39,27 @@ Stack * pop(Stack *s){
 	return s;
 }
 
+Stack * popVal(int val, Stack *s){
+	Stack *aux = s->next, *prev = s;
+
+	if(s->number == val){
+		s = pop(s);
+	}
+	else{
+		while(aux != NULL){
+			if(aux->number == val){
+				prev->next = aux->next;
+				free(aux);
+				break;
+			}
+			prev = aux;
+			aux = aux->next;
+		}
+	}
+
+	return s;
+}
+
 int imprimirStack(Stack *s){
 	if (s == NULL){
 		printf("The list is empty.\n");
