@@ -1098,7 +1098,18 @@ int separateCluster(int number){
     ++number_of_clusters;
 
     particle_list[number].neighbor = pop(particle_list[number].neighbor);
-    particle_list[adjacent_particle].neighbor = pop(particle_list[adjacent_particle].neighbor);
+
+    Stack *aux = particle_list[adjacent_particle].neighbor;
+    while(aux->number != number){
+        aux = aux->next;
+    }
+    if(aux == particle_list[adjacent_particle].neighbor){
+        particle_list[adjacent_particle].neighbor = pop(aux);
+    }
+    else{
+        pop(aux);
+    }
+    
 
     return adjacent_particle;
 }
