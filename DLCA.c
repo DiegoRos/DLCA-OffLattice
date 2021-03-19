@@ -63,7 +63,6 @@ void changeMassList(int mass1, int mass2);
 void setA();
 int selectClusterMass();
 Stack * findZ1Particles(int selected_cluster, Stack *z1_particles, int *count);
-int findAdjacentParticle(int number);
 int checkSpot(double x, double y);
 void step(int selected_cluster, double dir);
 void stepBack(int selected_cluster, double *odist, double dir);
@@ -173,7 +172,7 @@ int main(int argc, char *argv[]){
     #endif
 
     #ifdef DEBUG
-        srand(2);
+        srand(0);
 	#else
     	srand((unsigned)time(NULL)); // Set random seed 
     #endif
@@ -183,15 +182,13 @@ int main(int argc, char *argv[]){
     printf("Initializing Clusters...\n");
     initialize();
 
-    int selected_cluster;
-    int separation = False;
+    int selected_cluster, separation = False; // Randomly selected cluster index and boolean to revise if cluster separated
     Stack *z1_particles = NULL;
     int *z1_count = (int *)malloc(sizeof(int)), rand_z1;
     double rand_val;
     double dir; // Direction of step, will be changed every time step is called
     int *connecting_clusters = (int *)malloc(sizeof(int) * 4);
     int connected; // Boolean that checks if cluster connected
-    int step_cluster; // Boolean that checks if cluster separated
     double *odist = (double *)malloc(sizeof(double));
     steps_taken = 0;
 
@@ -206,6 +203,7 @@ int main(int argc, char *argv[]){
             if(rand_val < prob_desacoplar){
                 separation = True;
                 rand_z1 = rand() % (*z1_count);
+
                 int vecino = separateCluster(get(z1_particles, rand_z1));
                 selected_cluster = number_of_clusters - 1;
                 double dx = particle_list[firstp[selected_cluster]].x - particle_list[vecino].x;
@@ -268,46 +266,8 @@ int main(int argc, char *argv[]){
 
         #else
             if(connected){
-                int kpar;
-                int test_part;
-                double p2x, p2y, dx, dy, dist;
                 // Before joining clusters are pushed back and the overlap is removed
                 stepBack(selected_cluster, odist, dir);
-
-                // int particle = firstp[selected_cluster];
-                // while (particle != -1){
-                //     for(int i = 0; i < k_next; i++){
-                //         kpar = k_list[particle_list[particle].k][i];
-                //         while (cell_list[kpar] != -1){
-                //             test_part = cell_list[kpar] - cells2;
-
-                //             p2x = particle_list[test_part].x;
-                //             p2y = particle_list[test_part].y;
-
-                //             dx = particle_list[particle].x - p2x;
-                //             dy = particle_list[particle].y - p2y;
-
-                //             if (dx > (lat_size / 2))
-                //                 dx -= lat_size;
-                //             if (dx < (-lat_size / 2))
-                //                 dx += lat_size;
-
-                //             if (dy > (lat_size / 2))
-                //                 dy -= lat_size;
-                //             if (dy < (-lat_size / 2))
-                //                 dy += lat_size;
-
-                //             dist = sqrt((dx * dx) + (dy * dy));
-                //             if ((dist < (double)ring_size) && (particle != test_part) && (connecting_clusters[2] != test_part) && (connecting_clusters[3] == particle_list[test_part].index)){
-                //                 particle_list[particle].coordination_number++;
-                //                 particle_list[test_part].coordination_number++;
-
-                //             }
-                //             kpar = cell_list[kpar];
-                //         }
-                //     }
-                //     particle = nextp[particle];
-                // }
 
                 // Add 1 to the coordination particle of the corresponding particles
                 particle_list[connecting_clusters[0]].coordination_number++;
@@ -743,46 +703,6 @@ Stack * findZ1Particles(int selected_cluster, Stack *z1_particles, int *count){
     return z1_particles;
 }
 
-// Finds adjacent particle to a particle with coordination number = 1
-int findAdjacentParticle(int number){
-    char middle_file_name[80];
-    int adjacent1 = -1, adjacent2 = -1;
-	double min_dist = lat_size;
-    double dx, dy, dist;
-
-    int particle = firstp[particle_list[number].index];
-    
-    while (particle != -1){
-        dx = particle_list[particle].x - particle_list[number].x;
-        dy = particle_list[particle].y - particle_list[number].y;
-        if (dx > (lat_size / 2))
-            dx -= lat_size;
-        if (dx < (-lat_size / 2))
-            dx += lat_size;
-
-        if (dy > (lat_size / 2))
-            dy -= lat_size;
-        if (dy < (-lat_size / 2))
-            dy += lat_size;
-
-        dist = sqrt((dx * dx) + (dy * dy));
-        if ((dist < min_dist) && (number != particle)){
-            adjacent1 = particle;
-			min_dist = dist;
-        }
-        if ((dist < ring_size + 0.01) && (dist > ring_size - 0.01)){
-            adjacent2 = particle;
-        }
-		
-        particle = nextp[particle];
-    }
-
-    if (adjacent1 == -1)
-        adjacent1 = adjacent2;
-
-    return adjacent1;
-}
-
 // Function which takes a position and checks if this position is within interaction range of another particle
 int checkSpot(double x, double y){
     double dx, dy, distance;
@@ -1067,11 +987,7 @@ int separateCluster(int number){
 	int lc_mass = cluster_list[lc_index].mass;
 
 	int sc_mass = 1;
-    // adjacent_particle = findAdjacentParticle(number);
     adjacent_particle = particle_list[number].neighbor->number;
-    if(adjacent_particle == -1){
-        printf("This error\n");
-    }
 
     --particle_list[number].coordination_number;
     --particle_list[adjacent_particle].coordination_number;

@@ -22,6 +22,11 @@ typedef struct Stack{
 
 Stack * push(int val, struct Stack *s){
 	Stack *aux = (Stack *)malloc(sizeof(Stack));
+
+	if(aux == NULL){
+		printf("Not enough memory\n");
+		exit(0);
+	}
 	
 	aux->number = val;
 	aux->next = s;
