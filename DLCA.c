@@ -1069,7 +1069,6 @@ int separateCluster(int number){
 	int sc_mass = 1;
     // adjacent_particle = findAdjacentParticle(number);
     adjacent_particle = particle_list[number].neighbor->number;
-
     if(adjacent_particle == -1){
         printf("This error\n");
     }
@@ -1098,8 +1097,8 @@ int separateCluster(int number){
 
     ++number_of_clusters;
 
-    pop(particle_list[number].neighbor);
-    pop(particle_list[adjacent_particle].neighbor);
+    particle_list[number].neighbor = pop(particle_list[number].neighbor);
+    particle_list[adjacent_particle].neighbor = pop(particle_list[adjacent_particle].neighbor);
 
     return adjacent_particle;
 }
