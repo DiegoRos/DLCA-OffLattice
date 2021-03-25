@@ -66,7 +66,6 @@ void changeDenominator(int mass1, int mass2);
 void changeMassList(int mass1, int mass2);
 void setA();
 int selectClusterMass();
-Stack * findZ1Particles(int selected_cluster, Stack *z1_particles, int *count);
 int checkSpot(double x, double y);
 void step(int selected_cluster, double dir);
 void stepBack(int selected_cluster, double *odist, double dir);
@@ -736,20 +735,6 @@ int selectClusterMass(){
     return selected_cluster;
 }
 
-Stack * findZ1Particles(int selected_cluster, Stack *z1_particles, int *count){
-    *count = 0;
-    int particle = firstp[selected_cluster];
-    while (particle != -1){
-        if (particle_list[particle].coordination_number == 1){
-            z1_particles = push(particle, z1_particles);
-            (*count)++;
-        }
-
-        particle = nextp[particle];
-    }
-    return z1_particles;
-}
-
 // Function which takes a position and checks if this position is within interaction range of another particle
 int checkSpot(double x, double y){
     double dx, dy, distance;
@@ -1110,38 +1095,6 @@ void centerOfMassTwoPoints(int particles, double *x_list, double *y_list, int *m
     *cx = periodicBoundaryConditions(x_list[0] + (((double)mass_list[1] / (double)total_mass) * dx));
     *cy = periodicBoundaryConditions(y_list[0] + (((double)mass_list[1] / (double)total_mass) * dy));
 
-}
-
-// Calculates Center of mass for a given x_list and y_list
-// Formula found in article: Calculating Center of Mass in an Unbounded 2D Environment
-    // Authors: Linge Bai and David E. Breen
-    // DOI: 10.1080/2151237X.2008.10129266
-void centerOfMass(int particles, double *x_list, double *y_list, int *mass_list, double *cx, double *cy){
-    double total_mass = 0;
-    for (int i = 0; i < particles; i++){
-        total_mass += mass_list[i];
-    }
-
-    double epsilon_x = 0, zeta_x = 0, epsilon_y = 0, zeta_y = 0;
-    for (int i = 0; i < particles; i++){
-        epsilon_x += mass_list[i] * cos((x_list[i] / lat_size) * 2 * Pi);
-        zeta_x += mass_list[i] * sin((x_list[i] / lat_size) * 2 * Pi);
-        epsilon_y += mass_list[i] * cos((y_list[i] / lat_size) * 2 * Pi);
-        zeta_y += mass_list[i] * sin((y_list[i] / lat_size) * 2 * Pi);
-    }
-    epsilon_x = epsilon_x / total_mass;
-    zeta_x = zeta_x / total_mass;
-    epsilon_y = epsilon_y / total_mass;
-    zeta_y = zeta_y / total_mass;
-
-    float theta_x = atan2(-zeta_x, -epsilon_x) + Pi;
-    float theta_y = atan2(-zeta_y, -epsilon_y) + Pi;
-
-    float center_x = (theta_x / (2 * Pi)) * lat_size;
-    float center_y = (theta_y / (2 * Pi)) * lat_size;
-
-    *cx = center_x;
-    *cy = center_y;
 }
 
 double radiusOfGyration(int lc_mass, int sc_mass, int lc_label, int sc_label, double *cx_new, double *cy_new){
