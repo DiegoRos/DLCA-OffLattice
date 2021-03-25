@@ -40,6 +40,8 @@ int *mass_list; // Size of number of particles
 double denominator;
 double A;
 
+Z1 list_z1;
+
 // Instance methods for structs:
 
     // "Instance methods" for struct Particle (functions applied as if they were a instance method from OOP).
@@ -58,6 +60,8 @@ void setKlist(int k, int *kptr);
 void addToCellList(Particle *particle);
 void resetCellListElement(Particle *particle);
 void resetParticleInLists(int number);
+void removeParticleZ1Lists(int number);
+void addParticleZ1List(int number);
 void changeDenominator(int mass1, int mass2);
 void changeMassList(int mass1, int mass2);
 void setA();
@@ -183,8 +187,7 @@ int main(int argc, char *argv[]){
     initialize();
 
     int selected_cluster, separation = False; // Randomly selected cluster index and boolean to revise if cluster separated
-    Stack *z1_particles = NULL;
-    int *z1_count = (int *)malloc(sizeof(int)), rand_z1;
+    int rand_z1;
     double rand_val;
     double dir; // Direction of step, will be changed every time step is called
     int *connecting_clusters = (int *)malloc(sizeof(int) * 4);
@@ -193,18 +196,14 @@ int main(int argc, char *argv[]){
     steps_taken = 0;
 
     while(number_of_clusters != 1){
-        if(prob_desacoplar != 0){//Condition to speed up code if the probability is 0
-            selected_cluster = rand() % number_of_clusters; // Random cluster index from remaining clusters
-            z1_particles = findZ1Particles(selected_cluster, z1_particles, z1_count);
-        }
-        if (z1_particles != NULL){
-            rand_val = (double)rand() / (double)RAND_MAX;
+        if((prob_desacoplar != 0) && (list_z1.total != 0)){//Condition to speed up code if the probability is 0
+            rand_val = (double)rand() / (double)RAND_MAX; // Roll dice
 
             if(rand_val < prob_desacoplar){
                 separation = True;
-                rand_z1 = rand() % (*z1_count);
+                rand_z1 = rand() % (list_z1.total);
 
-                int vecino = separateCluster(get(z1_particles, rand_z1));
+                int vecino = separateCluster(get(list_z1.start, rand_z1));
                 selected_cluster = number_of_clusters - 1;
                 double dx = particle_list[firstp[selected_cluster]].x - particle_list[vecino].x;
                 double dy = particle_list[firstp[selected_cluster]].y - particle_list[vecino].y;
@@ -218,10 +217,6 @@ int main(int argc, char *argv[]){
                 if (dy < (-lat_size / 2))
                     dy += lat_size;
                 dir = atan2(dy, dx); // Random value from 0 to 2 Pi that indicates the direction of movement.
-            }
-            // Deletion Loop
-            while(z1_particles != NULL){
-                z1_particles = pop(z1_particles);
             }
         }
 
@@ -240,9 +235,12 @@ int main(int argc, char *argv[]){
                    // Before joining clusters are pushed back and the overlap is removed
                     stepBack(selected_cluster, odist, dir);
 
+
                     // Add 1 to the coordination particle of the corresponding particles
                     particle_list[connecting_clusters[0]].coordination_number++;
-                    particle_list[connecting_clusters[2]].coordination_number++; 
+                    particle_list[connecting_clusters[2]].coordination_number++;
+
+
 
                     particle_list[connecting_clusters[0]].neighbor = push(connecting_clusters[2], particle_list[connecting_clusters[0]].neighbor);
                     particle_list[connecting_clusters[2]].neighbor = push(connecting_clusters[0], particle_list[connecting_clusters[2]].neighbor);
@@ -268,10 +266,29 @@ int main(int argc, char *argv[]){
             if(connected){
                 // Before joining clusters are pushed back and the overlap is removed
                 stepBack(selected_cluster, odist, dir);
+                if(prob_desacoplar != 0){
+                    if(particle_list[connecting_clusters[0]].coordination_number == 1){
+                        removeParticleZ1Lists(connecting_clusters[0]);
+                    }
+
+                    if(particle_list[connecting_clusters[2]].coordination_number == 1){
+                        removeParticleZ1Lists(connecting_clusters[2]);
+                    }
+                }
 
                 // Add 1 to the coordination particle of the corresponding particles
                 particle_list[connecting_clusters[0]].coordination_number++;
-                particle_list[connecting_clusters[2]].coordination_number++; 
+                particle_list[connecting_clusters[2]].coordination_number++;
+
+                if(prob_desacoplar != 0){
+                    if(particle_list[connecting_clusters[0]].coordination_number == 1){
+                        addParticleZ1List(connecting_clusters[0]);
+                    } 
+
+                    if(particle_list[connecting_clusters[2]].coordination_number == 1){
+                        addParticleZ1List(connecting_clusters[2]);
+                    }
+                }
 
                 particle_list[connecting_clusters[0]].neighbor = push(connecting_clusters[2], particle_list[connecting_clusters[0]].neighbor);
                 particle_list[connecting_clusters[2]].neighbor = push(connecting_clusters[0], particle_list[connecting_clusters[2]].neighbor);
@@ -333,7 +350,6 @@ int main(int argc, char *argv[]){
     }
     printf("Total number of clusters %d\n", number_of_clusters);
     free(connecting_clusters);
-    free(z1_count);
     free(odist);
 
     // Save results
@@ -432,6 +448,11 @@ void initialize(){
     }
     free(kptr);
 
+    //Initialize Z1 list
+    list_z1.total = 0;
+    list_z1.start = NULL;
+    list_z1.particle_list = (StackCircular **)malloc(sizeof(StackCircular) * num_particles);
+
     // Set base values outside the system for all particles in system
     // This is done to avoid a clash when comparing elements of not created list in checkSpot.
     // Also sets all values in the mass_list to 0.
@@ -447,7 +468,7 @@ void initialize(){
     number_of_clusters = 0;
 
     double current_x, current_y;
-    double initial_rg2 = ring_size / 8; 
+    double initial_rg2 = ring_size / 8;
     for(int i = 0; i < num_particles; i++){
         current_x = ((double) rand() / (double)(RAND_MAX)) * lat_size;
         current_y = ((double) rand() / (double)(RAND_MAX)) * lat_size;
@@ -463,6 +484,14 @@ void initialize(){
         setK(particle_list + i);
         particle_list[i].coordination_number = 0;
         particle_list[i].neighbor = NULL;
+
+        //Create stack node for each particle
+        StackCircular *new = (StackCircular *)malloc(sizeof(StackCircular));
+        new->number = i;
+        new->next = NULL;
+        new->prev = NULL;
+        list_z1.particle_list[i] = new;
+
 
         // Places the particle (Cluster) on the firstp, nextp, and lastp lists
         firstp[number_of_clusters] = i;
@@ -651,6 +680,24 @@ void resetParticleInLists(int number){
 	firstp[number_of_clusters] = number;
 	lastp[number_of_clusters]  = number;
 	
+}
+
+void removeParticleZ1Lists(int number){
+    if (list_z1.particle_list[number] == list_z1.start)
+        list_z1.start = list_z1.start->next;
+
+    popList(list_z1.particle_list[number]);
+    list_z1.total--;
+}
+
+void addParticleZ1List(int number){
+    if (list_z1.start != NULL)
+        list_z1.start->prev = list_z1.particle_list[number];
+
+    list_z1.particle_list[number]->next = list_z1.start;
+    list_z1.start = list_z1.particle_list[number];
+    list_z1.total++;
+
 }
 
 // When joining clusters the masses are joined to change the value of the denominator correspondingly
@@ -989,8 +1036,20 @@ int separateCluster(int number){
 	int sc_mass = 1;
     adjacent_particle = particle_list[number].neighbor->number;
 
+    if(particle_list[number].coordination_number == 1){
+        removeParticleZ1Lists(number);
+    } 
+
+    if(particle_list[adjacent_particle].coordination_number == 1){
+        removeParticleZ1Lists(adjacent_particle);
+    }
+
     --particle_list[number].coordination_number;
     --particle_list[adjacent_particle].coordination_number;
+
+    if(particle_list[adjacent_particle].coordination_number == 1){
+        addParticleZ1List(adjacent_particle);
+    }
 
     resetParticleInLists(number);
 	

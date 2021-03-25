@@ -20,7 +20,7 @@ typedef struct Stack{
 	struct Stack *next; // Saves the next value
 }Stack;
 
-Stack * push(int val, struct Stack *s){
+Stack * push(int val, Stack *s){
 	Stack *aux = (Stack *)malloc(sizeof(Stack));
 
 	if(aux == NULL){
@@ -65,21 +65,59 @@ Stack * popVal(int val, Stack *s){
 	return s;
 }
 
-int imprimirStack(Stack *s){
-	if (s == NULL){
-		printf("The list is empty.\n");
-		return 1;
-	}
-	do{
-		printf("Num: %i\n", s->number);
-		s = s->next;
-	}while(s != NULL);
 
-	return 0;
+// Circular Stack struct with push and pop functions.
+typedef struct StackCircular{
+	int number; // Saves a particle number
+	struct StackCircular *next, *prev; // Saves the next and previous value
+}StackCircular;
+
+StackCircular * pushCircular(int val, StackCircular *s){
+	StackCircular *aux = (StackCircular *)malloc(sizeof(StackCircular));
+
+	if(aux == NULL){
+		printf("Not enough memory\n");
+		exit(0);
+	}
+	aux->number = val;
+
+	if(s != NULL){
+		aux->next = s;
+		aux->prev = NULL;
+		s->prev = aux;
+	}
+	else{
+		aux->next = NULL;
+		aux->prev = NULL;
+	}
+	
+	s = aux;
+	return s;
 }
 
-int get(Stack *s, int pos){
-    Stack *aux = s;
+StackCircular * popList(StackCircular *s){
+	StackCircular *aux = s;
+	if ((aux->prev == NULL) && (aux->next == NULL)){
+		return NULL;
+	}
+	else if (aux->prev == NULL){
+		aux->next->prev = s->prev;
+	}
+	else if (aux->next == NULL){
+		aux->prev->next = s->next;
+	}
+	else{
+		aux->prev->next = s->next;
+		aux->next->prev = s->prev;
+	}
+
+	s->next = NULL;
+	s->prev = NULL;
+	return s;
+}
+
+int get(StackCircular *s, int pos){
+    StackCircular *aux = s;
 	int i = 0;
 	if (s == NULL){
 		printf("Error gets function recieved NULL stack\n");
@@ -93,6 +131,11 @@ int get(Stack *s, int pos){
     return aux->number;
 }
 
+typedef struct{
+	int total;
+	StackCircular *start;
+	StackCircular **particle_list;
+}Z1;
 
 typedef struct {
     double x, y; // Particle position
