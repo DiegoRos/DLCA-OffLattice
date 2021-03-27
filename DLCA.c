@@ -256,7 +256,7 @@ int main(int argc, char *argv[]){
                 }
             }
 
-            if(steps_taken >= (int)(lat_size * 1000000 * 0.4)){
+            if(steps_taken >= (int)(lat_size * 1000000)){
                 printf("Stopped after too many steps: %d\n",steps_taken);
                 break;
             }
@@ -346,6 +346,7 @@ int main(int argc, char *argv[]){
 
         steps_taken++;
         connected = False;
+        separation = False;
     }
     printf("Total number of clusters %d\n", number_of_clusters);
     free(connecting_clusters);
@@ -414,6 +415,7 @@ void allocate_memory(){
     for (int i = 0; i < (lat_size * lat_size); i++){
         k_list[i] = (int *)malloc(sizeof(int) * k_next);
     }
+    list_z1.particle_list = (StackCircular **)malloc(sizeof(StackCircular) * num_particles);
 }
 
 //Function to deallocate memory to global pointers
@@ -426,6 +428,7 @@ void deallocate_memory(){
     free(cell_list);
     free(mass_list);
     free(k_list);
+    free(list_z1.particle_list);
 }
 
 // First function ran in the procedure, creates all necesary structures and places all particles in the system
@@ -450,7 +453,6 @@ void initialize(){
     //Initialize Z1 list
     list_z1.total = 0;
     list_z1.start = NULL;
-    list_z1.particle_list = (StackCircular **)malloc(sizeof(StackCircular) * num_particles);
 
     // Set base values outside the system for all particles in system
     // This is done to avoid a clash when comparing elements of not created list in checkSpot.
@@ -682,18 +684,21 @@ void resetParticleInLists(int number){
 }
 
 void removeParticleZ1Lists(int number){
-    if (list_z1.particle_list[number] == list_z1.start)
+    if (list_z1.particle_list[number] == list_z1.start){
         list_z1.start = list_z1.start->next;
+    }
 
     popList(list_z1.particle_list[number]);
     list_z1.total--;
 }
 
 void addParticleZ1List(int number){
-    if (list_z1.start != NULL)
+    if (list_z1.start != NULL){
         list_z1.start->prev = list_z1.particle_list[number];
+    }
 
     list_z1.particle_list[number]->next = list_z1.start;
+    list_z1.particle_list[number]->prev = NULL;
     list_z1.start = list_z1.particle_list[number];
     list_z1.total++;
 
@@ -723,7 +728,7 @@ int selectClusterMass(){
 
     // Do while loop to select cluster to move, if the probability of the cluster is higher than z the cluster moves.
     do{
-        selected_cluster = ((double)rand() / (double)RAND_MAX) * (number_of_clusters); // Random cluster index from remaining clusters
+        selected_cluster = rand() % number_of_clusters; // Random cluster index from remaining clusters
 
         prob_num = mass_list[cluster_list[selected_cluster].mass - 1] * (A);
         prob_den = cluster_list[selected_cluster].mass;
