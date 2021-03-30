@@ -87,19 +87,6 @@ int main(int argc, char *argv[]){
  
     clock_t begin = clock();
 
-    // Create partial result directory if directory does not exist
-    struct stat pr = {0};
-    if (stat("/Partial Results", &pr) == -1){
-        #ifdef __unix__
-            mkdir("Partial Results", 0777);
-        #else
-            mkdir("Partial Results");
-        #endif
-    }
-    char middle_file_name[80];
-    FILE *fm;
-
-
     // Options for argv when running executable
 
     if (argc < 3){
@@ -113,10 +100,10 @@ int main(int argc, char *argv[]){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
         prob_desacoplar = 0;
-        progress = num_particles > 20000 ? 500000 : (num_particles > 5000 ? 10000 : (num_particles/10));
+        progress = num_particles > 20000 ? 100000000 : (num_particles > 5000 ? 10000000 : (num_particles));
 
 		if (progress < 10){
-			progress = 1;
+			progress = 10;
 		}
 
         ring_size = 1;
@@ -126,11 +113,11 @@ int main(int argc, char *argv[]){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
         prob_desacoplar = atof(argv[3]);
-        progress = num_particles > 20000 ? 500000 : (num_particles > 5000 ? 10000 : (num_particles/10));
+        progress = num_particles > 20000 ? 100000000 : (num_particles > 5000 ? 10000000 : (num_particles));
 
         if (progress < 10){
-			progress = 1;
-		}
+            progress = 10;
+        }
 
         ring_size = 1;
     }
@@ -154,9 +141,23 @@ int main(int argc, char *argv[]){
     else{
         printf("Too many arguments entered when running DLCA.c executable.\n");
         printf("When running executable in cmd the order of entries is as follows: \n");
-        printf("<Executable Name> <number of particles> <lattice size> <ring size> <progress>\n");
+        printf("<Executable Name> <number of particles> <lattice size> <probability> <progress> <ring size> \n");
         exit(0);
     }
+
+
+    // Create partial result directory if directory does not exist
+    struct stat pr = {0};
+    if (stat("/Partial Results", &pr) == -1){
+        #ifdef __unix__
+            mkdir("Partial Results", 0777);
+        #else
+            mkdir("Partial Results");
+        #endif
+    }
+    char middle_file_name[80];
+    sprintf(middle_file_name, "Partial Results/EdgePartialClusterSize%dParticles%d.csv", lat_size, num_particles);
+    FILE *fm;
 
     // Creation of animation files if required
     #ifdef GIF
@@ -184,6 +185,7 @@ int main(int argc, char *argv[]){
     allocate_memory();
     printf("Initializing Clusters...\n");
     initialize();
+
 
     int selected_cluster, separation = False; // Randomly selected cluster index and boolean to revise if cluster separated
     int rand_z1;
@@ -233,17 +235,32 @@ int main(int argc, char *argv[]){
                 if ((particle_list[connecting_clusters[0]].coordination_number < MAX_COORDINATION) && (particle_list[connecting_clusters[2]].coordination_number < MAX_COORDINATION)){
                    // Before joining clusters are pushed back and the overlap is removed
                     stepBack(selected_cluster, odist, dir);
+                    if(prob_desacoplar != 0){
+                        if(particle_list[connecting_clusters[0]].coordination_number == 1){
+                            removeParticleZ1Lists(connecting_clusters[0]);
+                        }
 
+                        if(particle_list[connecting_clusters[2]].coordination_number == 1){
+                            removeParticleZ1Lists(connecting_clusters[2]);
+                        }
+                    }
 
                     // Add 1 to the coordination particle of the corresponding particles
                     particle_list[connecting_clusters[0]].coordination_number++;
                     particle_list[connecting_clusters[2]].coordination_number++;
 
+                    if(prob_desacoplar != 0){
+                        if(particle_list[connecting_clusters[0]].coordination_number == 1){
+                            addParticleZ1List(connecting_clusters[0]);
+                        } 
 
+                        if(particle_list[connecting_clusters[2]].coordination_number == 1){
+                            addParticleZ1List(connecting_clusters[2]);
+                        }
+                    }
 
                     particle_list[connecting_clusters[0]].neighbor = push(connecting_clusters[2], particle_list[connecting_clusters[0]].neighbor);
                     particle_list[connecting_clusters[2]].neighbor = push(connecting_clusters[0], particle_list[connecting_clusters[2]].neighbor);
-
 
                     // join non overlaping cluster;
                     joinClusters(connecting_clusters[1], connecting_clusters[3]); 
@@ -303,7 +320,7 @@ int main(int argc, char *argv[]){
             #ifdef MAX_COORDINATION
                 printf("Total number of clusters %d\n\t%d\n", number_of_clusters, steps_taken);
 
-                sprintf(middle_file_name, "Partial Results/EdgePartialClusterSize%dParticles%d.csv", lat_size, num_particles);
+                
                 fm = fopen(middle_file_name, "w");
 
                 for(int i = 0; i < num_particles; i++){
@@ -315,7 +332,6 @@ int main(int argc, char *argv[]){
             #else
                 printf("Total number of clusters %d\n", number_of_clusters);
         
-                sprintf(middle_file_name, "Partial Results/PartialClusterSize%dParticles%d.csv", lat_size, num_particles);
                 fm = fopen(middle_file_name, "w");
 
                 for(int i = 0; i < num_particles; i++){
@@ -351,6 +367,9 @@ int main(int argc, char *argv[]){
     printf("Total number of clusters %d\n", number_of_clusters);
     free(connecting_clusters);
     free(odist);
+
+    //Delete Partial Results File
+    remove(middle_file_name);
 
     // Save results
         // Create result directory if directory does not exist
@@ -398,7 +417,7 @@ int main(int argc, char *argv[]){
  
     printf("Time elpased is %f seconds\n", time_spent);
 
-    return 0;
+    return number_of_clusters;
 }
 
 //Function to allocate memory to global pointers
