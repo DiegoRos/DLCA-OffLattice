@@ -53,6 +53,8 @@ void setK(Particle *particle){
 
 // Program Function Declaration
 
+void runSim();
+void saveResults();
 void allocate_memory();
 void deallocate_memory();
 void initialize();
@@ -81,6 +83,8 @@ void centerOfMassTwoPoints(int particles, double *x_list, double *y_list, int *m
 double radiusOfGyration(int lc_mass, int sc_mass, int lc_label, int sc_label, double *cx_new, double *cy_new);
 void resetRgFile();
 void writeRgFile(int cluster_index);
+void resetNumberFile();
+void writeNumberFile();
 
 int main(int argc, char *argv[]){
     double time_spent = 0.0;
@@ -146,6 +150,40 @@ int main(int argc, char *argv[]){
     }
 
 
+    #ifdef CLUSTER_NUMBER
+        resetNumberFile();
+    #endif
+
+    #ifdef DEBUG
+        srand(0);
+	#else
+    	srand((unsigned)time(NULL)); // Set random seed 
+    #endif
+
+
+    printf("Allocating Memory...\n");
+    allocate_memory();
+
+    printf("Initializing Clusters...\n");
+    initialize();
+
+    printf("Running Simulation...\n");
+    runSim();
+
+    // Save results
+    saveResults();
+    
+    deallocate_memory(); // Deallocate memory of global pointer variables
+
+    clock_t end = clock();
+    time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
+ 
+    printf("Time elpased is %f seconds\n", time_spent);
+
+    return number_of_clusters;
+}
+
+void runSim(){
     // Create partial result directory if directory does not exist
     struct stat pr = {0};
     if (stat("/Partial Results", &pr) == -1){
@@ -157,7 +195,6 @@ int main(int argc, char *argv[]){
     }
     char middle_file_name[80];
     sprintf(middle_file_name, "Partial Results/EdgePartialClusterSize%dParticles%d.csv", lat_size, num_particles);
-    FILE *fm;
 
     // Creation of animation files if required
     #ifdef GIF
@@ -175,17 +212,7 @@ int main(int argc, char *argv[]){
         }
     #endif
 
-    #ifdef DEBUG
-        srand(0);
-	#else
-    	srand((unsigned)time(NULL)); // Set random seed 
-    #endif
-
-    printf("Allocating Memory...\n");
-    allocate_memory();
-    printf("Initializing Clusters...\n");
-    initialize();
-
+    FILE *fm;
 
     int selected_cluster, separation = False; // Randomly selected cluster index and boolean to revise if cluster separated
     int rand_z1;
@@ -340,12 +367,16 @@ int main(int argc, char *argv[]){
 
                 fclose(fm);
             #endif
+
+            #ifdef CLUSTER_NUMBER
+                writeNumberFile();
+            #endif
         }
 
-		if(steps_taken >= (int)(lat_size * 1000000 * 0.4)){
-			printf("Stopped after too many steps: %d\n",steps_taken);
-			break;
-		}
+        if(steps_taken >= (int)(lat_size * 1000000 * 0.4)){
+            printf("Stopped after too many steps: %d\n",steps_taken);
+            break;
+        }
 
 
 
@@ -364,15 +395,18 @@ int main(int argc, char *argv[]){
         connected = False;
         separation = False;
     }
-    printf("Total number of clusters %d\n", number_of_clusters);
+
     free(connecting_clusters);
     free(odist);
 
+    printf("Total number of clusters %d\n", number_of_clusters);
     //Delete Partial Results File
     remove(middle_file_name);
 
-    // Save results
-        // Create result directory if directory does not exist
+}
+
+void saveResults(){
+       // Create result directory if directory does not exist
     struct stat r = {0};
     if (stat("/Results", &r) == -1){
         #ifdef __unix__
@@ -409,15 +443,6 @@ int main(int argc, char *argv[]){
         fprintf(fr, "%lf,%lf,%d,%d\n", particle_list[i].x, particle_list[i].y, particle_list[i].index, particle_list[i].coordination_number);
     }
     fclose(fr);
-    
-    deallocate_memory(); // Deallocate memory of global pointer variables
-
-    clock_t end = clock();
-    time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
- 
-    printf("Time elpased is %f seconds\n", time_spent);
-
-    return number_of_clusters;
 }
 
 //Function to allocate memory to global pointers
@@ -1183,3 +1208,41 @@ void writeRgFile(int cluster_index){
     fclose(fp);
 
 }
+
+void resetNumberFile(){
+    FILE *fp;
+
+    char file_name[60];
+    #ifdef MAX_COORDINATION
+        sprintf(file_name, "Results/NumberTimeSize%dParticles%d.csv", lat_size, num_particles);
+    #else
+        sprintf(file_name, "Results/NumberTimeSize%dParticles%d.csv", lat_size, num_particles);
+    #endif
+    
+
+    fp = fopen(file_name, "w");
+    fclose(fp);
+}
+
+// Writes a new cluster into the RgMassTime file, this is done every time a cluster joins itself.
+void writeNumberFile(){
+    FILE *fp;
+
+    char file_name[60];
+    
+    #ifdef MAX_COORDINATION
+        sprintf(file_name, "Results/NumberTimeEdgeSize%dParticles%d.csv", lat_size, num_particles);
+    #else
+        sprintf(file_name, "Results/NumberTimeSize%dParticles%d.csv", lat_size, num_particles);
+    #endif
+
+    fp = fopen(file_name, "a");
+    for (int i = 0; i < number_of_clusters; ++i){
+        fprintf(fp, "%d,%d\n", steps_taken, cluster_list[i].mass);    
+    }
+    
+
+    fclose(fp);
+
+}
+

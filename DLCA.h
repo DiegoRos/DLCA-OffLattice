@@ -13,6 +13,7 @@
 
 // #define GIF 1
 // #define RGINFO 1
+// #define CLUSTER_NUMBER 1
 
 // Stack struct with push and pop functions.
 typedef struct Stack{
