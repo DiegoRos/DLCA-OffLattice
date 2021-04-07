@@ -16,7 +16,7 @@ int lat_size; // Size of lattice of the system
 int ring_size; // Diameter of particles and the distance of interaction between them
 int progress; // Gives the amount of steps required to save a progress csv and to print an update to the console
 int gif; // Boolean to check if csv for a gif are required
-float prob_desacoplar;
+float prob_separate;
 int steps_taken = 0;
 
 
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]){
     else if (argc == 3){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
-        prob_desacoplar = 0;
+        prob_separate = 0;
         progress = num_particles > 20000 ? 100000000 : (num_particles > 5000 ? 10000000 : (num_particles));
 
 		if (progress < 10){
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]){
     else if (argc == 4){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
-        prob_desacoplar = atof(argv[3]);
+        prob_separate = atof(argv[3]);
         progress = num_particles > 20000 ? 100000000 : (num_particles > 5000 ? 10000000 : (num_particles));
 
         if (progress < 10){
@@ -129,7 +129,7 @@ int main(int argc, char *argv[]){
     else if (argc == 5){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
-        prob_desacoplar = atof(argv[3]);
+        prob_separate = atof(argv[3]);
         progress = atoi(argv[4]);
         ring_size = 1;
     }
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]){
     else if (argc == 6){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
-        prob_desacoplar = atof(argv[3]);
+        prob_separate = atof(argv[3]);
         progress = atoi(argv[4]);
         ring_size = atoi(argv[5]);
     }
@@ -194,7 +194,7 @@ void runSim(){
         #endif
     }
     char middle_file_name[80];
-    sprintf(middle_file_name, "Partial Results/EdgePartialClusterSize%dParticles%d.csv", lat_size, num_particles);
+    sprintf(middle_file_name, "Partial Results/EdgePartialClusterSize%dParticles%dProb%f.csv", lat_size, num_particles,prob_separate);
 
     // Creation of animation files if required
     #ifdef GIF
@@ -214,7 +214,7 @@ void runSim(){
 
     FILE *fm;
 
-    int selected_cluster, separation = False; // Randomly selected cluster index and boolean to revise if cluster separated
+    int selected_cluster, separation = False, cluster_one_counter = 0; // Randomly selected cluster index and boolean to revise if cluster separated
     int rand_z1;
     double rand_val;
     double dir; // Direction of step, will be changed every time step is called
@@ -223,11 +223,12 @@ void runSim(){
     double *odist = (double *)malloc(sizeof(double));
     steps_taken = 0;
 
-    while(number_of_clusters != 1){
-        if((prob_desacoplar != 0) && (list_z1.total != 0)){//Condition to speed up code if the probability is 0
+    //while(number_of_clusters != 1){
+    while(True){ // Will run until break condition is reached
+        if((prob_separate != 0) && (list_z1.total != 0)){//Condition to speed up code if the probability is 0
             rand_val = (double)rand() / (double)RAND_MAX; // Roll dice
 
-            if(rand_val < prob_desacoplar){
+            if(rand_val < prob_separate){
                 separation = True;
                 rand_z1 = rand() % (list_z1.total);
 
@@ -262,7 +263,7 @@ void runSim(){
                 if ((particle_list[connecting_clusters[0]].coordination_number < MAX_COORDINATION) && (particle_list[connecting_clusters[2]].coordination_number < MAX_COORDINATION)){
                    // Before joining clusters are pushed back and the overlap is removed
                     stepBack(selected_cluster, odist, dir);
-                    if(prob_desacoplar != 0){
+                    if(prob_separate != 0){
                         if(particle_list[connecting_clusters[0]].coordination_number == 1){
                             removeParticleZ1Lists(connecting_clusters[0]);
                         }
@@ -276,7 +277,7 @@ void runSim(){
                     particle_list[connecting_clusters[0]].coordination_number++;
                     particle_list[connecting_clusters[2]].coordination_number++;
 
-                    if(prob_desacoplar != 0){
+                    if(prob_separate != 0){
                         if(particle_list[connecting_clusters[0]].coordination_number == 1){
                             addParticleZ1List(connecting_clusters[0]);
                         } 
@@ -300,16 +301,11 @@ void runSim(){
                 }
             }
 
-            if(steps_taken >= (int)(lat_size * 1000000)){
-                printf("Stopped after too many steps: %d\n",steps_taken);
-                break;
-            }
-
         #else
             if(connected){
                 // Before joining clusters are pushed back and the overlap is removed
                 stepBack(selected_cluster, odist, dir);
-                if(prob_desacoplar != 0){
+                if(prob_separate != 0){
                     if(particle_list[connecting_clusters[0]].coordination_number == 1){
                         removeParticleZ1Lists(connecting_clusters[0]);
                     }
@@ -323,7 +319,7 @@ void runSim(){
                 particle_list[connecting_clusters[0]].coordination_number++;
                 particle_list[connecting_clusters[2]].coordination_number++;
 
-                if(prob_desacoplar != 0){
+                if(prob_separate != 0){
                     if(particle_list[connecting_clusters[0]].coordination_number == 1){
                         addParticleZ1List(connecting_clusters[0]);
                     } 
@@ -337,51 +333,51 @@ void runSim(){
                 particle_list[connecting_clusters[2]].neighbor = push(connecting_clusters[0], particle_list[connecting_clusters[2]].neighbor);
 
                 // join non overlaping cluster;
-                joinClusters(connecting_clusters[1], connecting_clusters[3]); 
+                joinClusters(connecting_clusters[1], connecting_clusters[3]);
             }
 
         #endif 
 
         if ((steps_taken % progress) == 0){
         // Print and save progress of system
-            #ifdef MAX_COORDINATION
-                printf("Total number of clusters %d\n\t%d\n", number_of_clusters, steps_taken);
+            printf("Total number of clusters %d\n", number_of_clusters);
 
-                
-                fm = fopen(middle_file_name, "w");
+            
+            fm = fopen(middle_file_name, "w");
 
-                for(int i = 0; i < num_particles; i++){
-                    fprintf(fm, "%lf,%lf,%d,%d\n", particle_list[i].x, particle_list[i].y, particle_list[i].index, particle_list[i].coordination_number);
-                }
+            for(int i = 0; i < num_particles; i++){
+                fprintf(fm, "%lf,%lf,%d,%d\n", particle_list[i].x, particle_list[i].y, particle_list[i].index, particle_list[i].coordination_number);
+            }
 
-                fclose(fm);
-
-            #else
-                printf("Total number of clusters %d\n", number_of_clusters);
-        
-                fm = fopen(middle_file_name, "w");
-
-                for(int i = 0; i < num_particles; i++){
-                    fprintf(fm, "%lf,%lf,%d,%d\n", particle_list[i].x, particle_list[i].y, particle_list[i].index, particle_list[i].coordination_number);
-                }
-
-                fclose(fm);
-            #endif
+            fclose(fm);
 
             #ifdef CLUSTER_NUMBER
                 writeNumberFile();
             #endif
         }
 
-        if(steps_taken >= (int)(lat_size * 1000000 * 0.4)){
+        if(number_of_clusters == 1){
+            ++cluster_one_counter;
+        }
+
+        //Possible Break conditinos to end while loop
+        if(steps_taken >= (int)(lat_size * 1000000 * 0.5)){
             printf("Stopped after too many steps: %d\n",steps_taken);
             break;
         }
 
+        if((prob_separate == 0) && (number_of_clusters == 1)){
+            printf("1 Cluster Reached\n");
+            break;
+        }
 
+        if(cluster_one_counter > progress){
+            printf("Clusters Oscilating over 1 final cluster.\n");
+            break;
+        }
 
         #ifdef GIF
-            sprintf(gif_file_name, "Animation/ClusterSize%dParticles%dSteps%d.csv", lat_size, num_particles, steps_taken);
+            sprintf(gif_file_name, "Animation/ClusterSize%dParticles%dProb%fSteps%d.csv", lat_size, num_particles, prob_separate, steps_taken);
             gif = fopen(gif_file_name, "w");
 
             for(int i = 0; i < num_particles; i++){
@@ -420,9 +416,13 @@ void saveResults(){
     FILE *frg2;
 
     #ifdef MAX_COORDINATION
-        sprintf(resultrg_file_name, "Results/Rg2EdgeClusterSize%dParticles%d.txt", lat_size, num_particles);
+        sprintf(resultrg_file_name, "Results/Rg2EdgeClusterSize%dParticles%dProb%f.txt", lat_size, num_particles, prob_separate);
     #else
-        sprintf(resultrg_file_name, "Results/Rg2ClusterSize%dParticles%d.txt", lat_size, num_particles);
+        sprintf(resultrg_file_name, "Results/Rg2ClusterSize%dParticles%dProb%f.txt", lat_size, num_particles, prob_separate);
+    #endif
+
+    #ifdef CLUSTER_NUMBER
+        writeNumberFile();
     #endif
 
     frg2 = fopen(resultrg_file_name, "w");
@@ -433,9 +433,9 @@ void saveResults(){
     char result_file_name[80];
     FILE *fr;
     #ifdef MAX_COORDINATION
-        sprintf(result_file_name, "Results/EdgeClusterSize%dParticles%d.csv", lat_size, num_particles);
+        sprintf(result_file_name, "Results/EdgeClusterSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #else
-        sprintf(result_file_name, "Results/ClusterSize%dParticles%d.csv", lat_size, num_particles);
+        sprintf(result_file_name, "Results/ClusterSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #endif
 
     fr = fopen(result_file_name, "w");
@@ -566,6 +566,11 @@ void initialize(){
 
     #ifdef RGINFO
         resetRgFile();
+    #endif
+
+
+    #ifdef CLUSTER_NUMBER
+        writeNumberFile();
     #endif
 
     printf("\n");
@@ -1180,9 +1185,9 @@ void resetRgFile(){
 
     char file_name[60];
     #ifdef MAX_COORDINATION
-        sprintf(file_name, "Results/RgMassTimeEdgeSize%dParticles%d.csv", lat_size, num_particles);
+        sprintf(file_name, "Results/RgMassTimeEdgeSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #else
-        sprintf(file_name, "Results/RgMassTimeSize%dParticles%d.csv", lat_size, num_particles);
+        sprintf(file_name, "Results/RgMassTimeSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #endif
     
 
@@ -1197,9 +1202,9 @@ void writeRgFile(int cluster_index){
     char file_name[60];
     
     #ifdef MAX_COORDINATION
-        sprintf(file_name, "Results/RgMassTimeEdgeSize%dParticles%d.csv", lat_size, num_particles);
+        sprintf(file_name, "Results/RgMassTimeEdgeSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #else
-        sprintf(file_name, "Results/RgMassTimeSize%dParticles%d.csv", lat_size, num_particles);
+        sprintf(file_name, "Results/RgMassTimeSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #endif
 
     fp = fopen(file_name, "a");
@@ -1214,9 +1219,9 @@ void resetNumberFile(){
 
     char file_name[60];
     #ifdef MAX_COORDINATION
-        sprintf(file_name, "Results/NumberTimeSize%dParticles%d.csv", lat_size, num_particles);
+        sprintf(file_name, "Results/NumberTimeSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #else
-        sprintf(file_name, "Results/NumberTimeSize%dParticles%d.csv", lat_size, num_particles);
+        sprintf(file_name, "Results/NumberTimeSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #endif
     
 
@@ -1231,14 +1236,19 @@ void writeNumberFile(){
     char file_name[60];
     
     #ifdef MAX_COORDINATION
-        sprintf(file_name, "Results/NumberTimeEdgeSize%dParticles%d.csv", lat_size, num_particles);
+        sprintf(file_name, "Results/NumberTimeEdgeSize%dParticles%dProb%f.csv", lat_size, num_particles,prob_separate);
     #else
-        sprintf(file_name, "Results/NumberTimeSize%dParticles%d.csv", lat_size, num_particles);
+        sprintf(file_name, "Results/NumberTimeSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #endif
 
     fp = fopen(file_name, "a");
-    for (int i = 0; i < number_of_clusters; ++i){
-        fprintf(fp, "%d,%d\n", steps_taken, cluster_list[i].mass);    
+    fprintf(fp, "%d,", steps_taken);
+    for (int i = 0; i < num_particles; ++i){
+        fprintf(fp, "%d", mass_list[i]);
+        if(i != num_particles - 1)
+            fprintf(fp, ", ");
+        else
+            fprintf(fp, "\n");
     }
     
 

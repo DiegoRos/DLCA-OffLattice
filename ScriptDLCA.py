@@ -20,11 +20,18 @@ import pandas as pd
 import numpy as np
 
 
-def mainScript(lat_size, particles, total, probability=0, make=False):
-    result_file = f"Results/ClusterSize{lat_size}Particles{particles}.csv"
+def mainScript(lat_size, particles, total, probability=0, progress="", make=False, extra_runtime_args=""):
+    result_file = f"Results/ClusterSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv"
 
-    if make == True:
+    if (make == True) and (extra_runtime_args == ""):
         os.system("make")
+    elif make == True:
+        print("gcc " + extra_runtime_args + " DLCA.c -o DLCA.exe -lm")
+        os.system("gcc " + extra_runtime_args + " DLCA.c -o DLCA.exe -lm")
+        print("gcc FracDimDLCA.c -o FracDimDLCA.exe -lm")
+        os.system("gcc FracDimDLCA.c -o FracDimDLCA.exe -lm")
+        print("gcc PercolatesDLCA.c -o Percolates.exe")
+        os.system("gcc PercolatesDLCA.c -o Percolates.exe")
 
     main_executable_name = "DLCA"
     fracdim_executable_name = "FracDimDLCA"
@@ -46,7 +53,7 @@ def mainScript(lat_size, particles, total, probability=0, make=False):
     # If a previous file existed this will count the number of lines to only add the amount of required rows.
     df = pd.read_csv('Final Results/ResultsOffL.csv')
     try:
-        num_lines = len(df[df['num_particles'] == particles])
+        num_lines = len(df[(df['num_particles'] == int(particles)) & (df['lattice_size'] == int(lat_size)) & (df['probability'] == float(probability))])
     except:
         num_lines = 0
 
@@ -62,7 +69,7 @@ def mainScript(lat_size, particles, total, probability=0, make=False):
             start = time.time()  # Starts internal clock
 
             # Run cluster executable:
-            main_return = subprocess.run([main_executable_name, str(lat_size), str(particles), str(probability)])
+            main_return = subprocess.run([main_executable_name, str(lat_size), str(particles), str(probability), progress])
             num_clusters = int(main_return.returncode)
             print(num_clusters)
 
@@ -102,11 +109,15 @@ def mainScript(lat_size, particles, total, probability=0, make=False):
             print(dict_of_elements)
 
 
-            # copyfile(f"Results/ClusterSize{lat_size}Particles{particles}.csv", f"D:\\ASE III Resultados/{i}ClusterSize{lat_size}Particles{particles}.csv")
+            copyfile(f"Results/ClusterSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv", f"D:\\ASE III Resultados/{i}ClusterSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv")
 
-            # copyfile(f"Results/FracDimCountsSize{lat_size}Particles{particles}.csv", f"D:\\ASE III Resultados/{i}FracDimListSize{lat_size}Particles{particles}.csv")
+            # copyfile(f"Results/FracDimCountsSize{lat_size}Particles{particles}.csv", f"D:\\ASE III Resultados/{i}FracDimListSize{lat_size}Particles{particles}Prob{probability}.csv")
 
-            # copyfile(f"Results/RgMassTimeSize{lat_size}Particles{particles}.csv", f"D:\\ASE III Resultados/{i}RgMassTimeSize{lat_size}Particles{particles}.csv")
+            if "RGINFO" in extra_runtime_args:
+                copyfile(f"Results/RgMassTimeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv", f"D:\\ASE III Resultados/{i}RgMassTimeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv")
+
+            if "CLUSTER_NUMBER" in extra_runtime_args:
+                copyfile(f"Results/NumberTimeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv", f"D:\\ASE III Resultados/{i}NumberTimeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv")
             
 
 if __name__=='__main__':
@@ -124,10 +135,21 @@ if __name__=='__main__':
     else:
         probability = 0
 
+    if '-a' in sys.argv:
+        index = sys.argv.index('-a')
+        progress = str(sys.argv[index + 1])
+
     if '-m' in sys.argv:
         make = True
     else:
         make = False
 
-    mainScript(lat_size, particles, total, probability=probability, make=make)
+    if '-o' in sys.argv:
+        index = sys.argv.index('-o')
+        extra_runtime_args = str(sys.argv[index + 1])
+        make = True
+    else:
+        extra_runtime_args = ""
+
+    mainScript(lat_size, particles, total, probability=probability, progress=progress, make=make, extra_runtime_args=extra_runtime_args)
 
