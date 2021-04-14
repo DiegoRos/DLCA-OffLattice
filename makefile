@@ -13,3 +13,6 @@ Debug: DLCA.c
 	gcc DLCA.c -D DEBUG -o DLCA -lm
 	gcc -g -D DEBUG DLCA.c -lm
 
+Rg: DLCA.c
+	gcc DLCA.c -D RGINFO -o DLCA.exe
+

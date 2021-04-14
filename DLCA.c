@@ -79,8 +79,10 @@ void joinClusters(int c1, int c2);
 int separateCluster(int number);
 void posParticlesCluster(int lc_label, double *x_list, double *y_list);
 void centerOfMass(int particles, double *x_list, double *y_list, int *mass_list, double *cx, double *cy);
-void centerOfMassTwoPoints(int particles, double *x_list, double *y_list, int *mass_list, double *cx, double *cy);
+void centerOfMassTwoPoints(double *cx_list, double *cy_list, int *mass_list, double *cx, double *cy);
+void undoCenterOfMassTwoPoints(double *cx_list, double *cy_list, int *mass_list, double *cx, double *cy);
 double radiusOfGyration(int lc_mass, int sc_mass, int lc_label, int sc_label, double *cx_new, double *cy_new);
+double undoRadiusOfGyration(int sc_mass, int lc_label, int removed_particle, double *cx_new, double *cy_new);
 void resetRgFile();
 void writeRgFile(int cluster_index);
 void resetNumberFile();
@@ -1031,7 +1033,7 @@ void joinClusters(int c1, int c2){
 
     double *cx = (double *)malloc(sizeof(double)), *cy = (double *)malloc(sizeof(double));
 
-    centerOfMassTwoPoints(2, cm_x_list, cm_y_list, cm_mass_list, cx, cy);
+    centerOfMassTwoPoints(cm_x_list, cm_y_list, cm_mass_list, cx, cy);
     
     cluster_list[lc_label].rg2 = radiusOfGyration(lc_mass, sc_mass, lc_label, sc_label, cx, cy);
     cluster_list[lc_label].cx = *cx;
@@ -1061,7 +1063,7 @@ void joinClusters(int c1, int c2){
     free(cy);
 
     #ifdef RGINFO
-        if (cluster_list[lc_label] > 2)
+        if (cluster_list[lc_label].mass > 2)
             writeRgFile(lc_label);
     #endif
 
@@ -1092,10 +1094,24 @@ int separateCluster(int number){
 
     resetParticleInLists(number);
 	
-	--cluster_list[lc_index].mass;
-	//cluster_list[lc_index].cx = new_cx;
-	//clster_list[lc_index].cy = new_cy;
-	//cluster_list[lc_index].rg2 = new_rg2;
+	double cm_x_list[2] = {cluster_list[lc_index].cx, particle_list[number].x};
+    double cm_y_list[2] = {cluster_list[lc_index].cy, particle_list[number].y};
+    int cm_mass_list[2] = {lc_mass - 1, sc_mass};
+
+    double *new_cx = (double *)malloc(sizeof(double)), *new_cy = (double *)malloc(sizeof(double));
+    undoCenterOfMassTwoPoints(cm_x_list, cm_y_list, cm_mass_list, new_cx, new_cy);
+
+    double new_rg2 = undoRadiusOfGyration(sc_mass, lc_index, number, new_cx, new_cy);
+
+	cluster_list[lc_index].cx = *new_cx;
+	cluster_list[lc_index].cy = *new_cy;
+	cluster_list[lc_index].rg2 = new_rg2;
+    --cluster_list[lc_index].mass;
+
+    #ifdef RGINFO
+        if (cluster_list[lc_index].mass > 2)
+            writeRgFile(lc_index);
+    #endif
 	
     particle_list[number].index = number_of_clusters;
     cluster_list[number_of_clusters].mass = 1;
@@ -1115,6 +1131,9 @@ int separateCluster(int number){
 	
 	particle_list[adjacent_particle].neighbor = popVal(number, particle_list[adjacent_particle].neighbor);    
 
+    free(new_cx);
+    free(new_cy);
+
     return adjacent_particle;
 }
 
@@ -1132,9 +1151,9 @@ void posParticlesCluster(int cluster_label, double *x_list, double *y_list){
     } 
 }
 
-void centerOfMassTwoPoints(int particles, double *x_list, double *y_list, int *mass_list, double *cx, double *cy){
+void centerOfMassTwoPoints(double *cx_list, double *cy_list, int *mass_list, double *cx, double *cy){
     int total_mass = mass_list[0] + mass_list[1];
-    double dx = x_list[1] - x_list[0], dy = y_list[1] - y_list[0];
+    double dx = cx_list[1] - cx_list[0], dy = cy_list[1] - cy_list[0];
 
     if (dx > (lat_size / 2))
         dx -= lat_size;
@@ -1146,9 +1165,27 @@ void centerOfMassTwoPoints(int particles, double *x_list, double *y_list, int *m
     if (dy < (-lat_size / 2))
         dy += lat_size;
 
-    *cx = periodicBoundaryConditions(x_list[0] + (((double)mass_list[1] / (double)total_mass) * dx));
-    *cy = periodicBoundaryConditions(y_list[0] + (((double)mass_list[1] / (double)total_mass) * dy));
+    *cx = periodicBoundaryConditions(cx_list[0] + (((double)mass_list[1] / (double)total_mass) * dx));
+    *cy = periodicBoundaryConditions(cy_list[0] + (((double)mass_list[1] / (double)total_mass) * dy));
 
+}
+
+void undoCenterOfMassTwoPoints(double *cx_list, double *cy_list, int *mass_list, double *cx, double *cy){
+    int total_mass = mass_list[0] + mass_list[1];
+    double dx = cx_list[1] - cx_list[0], dy = cy_list[1] - cy_list[0];
+
+    if (dx > (lat_size / 2))
+        dx -= lat_size;
+    if (dx < (-lat_size / 2))
+        dx += lat_size;
+
+    if (dy > (lat_size / 2))
+        dy -= lat_size;
+    if (dy < (-lat_size / 2))
+        dy += lat_size;
+
+    *cx = periodicBoundaryConditions(cx_list[0] - (((double)mass_list[1] / (double)total_mass) * dx));
+    *cy = periodicBoundaryConditions(cy_list[0] - (((double)mass_list[1] / (double)total_mass) * dy));
 }
 
 double radiusOfGyration(int lc_mass, int sc_mass, int lc_label, int sc_label, double *cx_new, double *cy_new){
@@ -1177,6 +1214,31 @@ double radiusOfGyration(int lc_mass, int sc_mass, int lc_label, int sc_label, do
     double rg2_f = ((lc_mass * rg2_cm11) + (sc_mass * rg2_cm12)) / (lc_mass + sc_mass);
         
     return rg2_f;
+}
+
+double undoRadiusOfGyration(int sc_mass, int lc_label, int removed_particle, double *cx_new, double *cy_new){
+    double dcx1 = fabs(cluster_list[lc_label].cx - (*cx_new)), dcy1 = fabs(cluster_list[lc_label].cy - (*cy_new));
+    double dcx2 = fabs(cluster_list[lc_label].cx - particle_list[removed_particle].x), dcy2 = fabs(cluster_list[lc_label].cy - particle_list[removed_particle].y);
+    if (dcx1 > (lat_size / 2)){
+        dcx1 = lat_size - dcx1;
+    }
+    if (dcy1 > (lat_size / 2)){
+        dcy1 = lat_size - dcy1;
+    }
+
+    if (dcx2 > (lat_size / 2)){
+        dcx2 = lat_size - dcx2;
+    }
+    if (dcy2 > (lat_size / 2)){
+        dcy2 = lat_size - dcy2;
+    }
+
+    double h1 = pow(dcx1, 2) + pow(dcy1, 2);
+    double h2 = pow(dcx2, 2) + pow(dcy2, 2);
+
+    double rg2_1 = ((double)((cluster_list[lc_label].rg2 * cluster_list[lc_label].mass) - (sc_mass * h2)) / (double)(cluster_list[lc_label].mass - sc_mass)) - h1;
+        
+    return rg2_1;
 }
 
 //Opens RgMassTime file with w so that the file is effectively erased
