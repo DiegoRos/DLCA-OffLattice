@@ -106,7 +106,7 @@ int main(int argc, char *argv[]){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
         prob_separate = 0;
-        progress = num_particles > 20000 ? 100000000 : (num_particles > 5000 ? 10000000 : (num_particles));
+        progress = num_particles > 20000 ? 1000000 : (num_particles > 5000 ? 100000 : (num_particles));
 
 		if (progress < 10){
 			progress = 10;
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]){
         lat_size = atoi(argv[1]);
         num_particles = atoi(argv[2]);
         prob_separate = atof(argv[3]);
-        progress = num_particles > 20000 ? 100000000 : (num_particles > 5000 ? 10000000 : (num_particles));
+        progress = num_particles > 2000 ? 1000000 : (num_particles > 500 ? 100000 : (num_particles));
 
         if (progress < 10){
             progress = 10;
@@ -196,7 +196,11 @@ void runSim(){
         #endif
     }
     char middle_file_name[80];
-    sprintf(middle_file_name, "Partial Results/EdgePartialClusterSize%dParticles%dProb%f.csv", lat_size, num_particles,prob_separate);
+    #ifdef MAX_COORDINATION
+        sprintf(middle_file_name, "Partial Results/EdgePartialClusterSize%dParticles%dProb%f.csv", lat_size, num_particles,prob_separate);
+    #else
+        sprintf(middle_file_name, "Partial Results/PartialClusterSize%dParticles%dProb%f.csv", lat_size, num_particles,prob_separate);
+    #endif
 
     // Creation of animation files if required
     #ifdef GIF
@@ -344,7 +348,6 @@ void runSim(){
         // Print and save progress of system
             printf("Total number of clusters %d\n", number_of_clusters);
 
-            
             fm = fopen(middle_file_name, "w");
 
             for(int i = 0; i < num_particles; i++){
@@ -356,6 +359,17 @@ void runSim(){
             #ifdef CLUSTER_NUMBER
                 writeNumberFile();
             #endif
+
+            #ifdef GIF
+                sprintf(gif_file_name, "Animation/ClusterSize%dParticles%dProb%fSteps%d.csv", lat_size, num_particles, prob_separate, steps_taken);
+                gif = fopen(gif_file_name, "w");
+
+                for(int i = 0; i < num_particles; i++){
+                    fprintf(gif, "%lf,%lf,%d\n", particle_list[i].x, particle_list[i].y,particle_list[i].index);
+                }
+
+                fclose(gif);
+            #endif
         }
 
         if(number_of_clusters == 1){
@@ -363,7 +377,7 @@ void runSim(){
         }
 
         //Possible Break conditinos to end while loop
-        if(steps_taken >= (int)(lat_size * 1000000 * 0.5)){
+        if(steps_taken >= (int)(lat_size * 1000000)){
             printf("Stopped after too many steps: %d\n",steps_taken);
             break;
         }
@@ -377,17 +391,6 @@ void runSim(){
             printf("Clusters Oscilating over 1 final cluster.\n");
             break;
         }
-
-        #ifdef GIF
-            sprintf(gif_file_name, "Animation/ClusterSize%dParticles%dProb%fSteps%d.csv", lat_size, num_particles, prob_separate, steps_taken);
-            gif = fopen(gif_file_name, "w");
-
-            for(int i = 0; i < num_particles; i++){
-                fprintf(gif, "%lf,%lf,%d,%d\n", particle_list[i].x, particle_list[i].y,particle_list[i].index, particle_list[i].coordination_number);
-            }
-
-            fclose(gif);
-        #endif
 
         steps_taken++;
         connected = False;
@@ -574,7 +577,7 @@ void initialize(){
     #ifdef CLUSTER_NUMBER
         writeNumberFile();
     #endif
-
+    printf("%i Allocated Clusters\n", num_particles);
     printf("\n");
 }
 

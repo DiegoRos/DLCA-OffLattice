@@ -37,24 +37,30 @@ if __name__ == "__main__":
     lat_size = int(sys.argv[1])
     particles = int(sys.argv[2])
 
+    if '-p' in sys.argv:
+        index = sys.argv.index('-p')
+        prob = float(sys.argv[index])
+    else:
+        prob = float(0)
+
     if '-n' in sys.argv:
         index = sys.argv.index('-n')
         file_name = sys.argv[index + 1]
 
     elif '-m' in sys.argv:
-        file_name = f"Results/ClusterSize{lat_size}Particles{particles}.csv"
+        file_name = f"Results/ClusterSize{lat_size}Particles{particles}Prob{prob:.6f}.csv"
 
-    elif '-p' in sys.argv:
-        file_name = f"Partial Results/PartialClusterSize{lat_size}Particles{particles}.csv"
+    elif '-pm' in sys.argv:
+        file_name = f"Partial Results/PartialClusterSize{lat_size}Particles{particles}Prob{prob:.6f}.csv"
 
     elif '-me' in sys.argv:
-        file_name = f"Results/EdgeClusterSize{lat_size}Particles{particles}.csv"
+        file_name = f"Results/EdgeClusterSize{lat_size}Particles{particles}Prob{prob:.6f}.csv"
 
     elif '-pe' in sys.argv:
-        file_name = f"Partial Results/EdgePartialClusterSize{lat_size}Particles{particles}.csv"
+        file_name = f"Partial Results/EdgePartialClusterSize{lat_size}Particles{particles}Prob{prob:.6f}.csv"
     
     else:
-        file_name = f"Results/ClusterSize{lat_size}Particles{particles}.csv"
+        file_name = f"Results/ClusterSize{lat_size}Particles{particles}Prob{prob:.6f}.csv"
 
     if '-c' in sys.argv:
         center = True

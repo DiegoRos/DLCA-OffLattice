@@ -20,18 +20,33 @@ import pandas as pd
 import numpy as np
 
 
-def mainScript(lat_size, particles, total, probability=0, progress="", make=False, extra_runtime_args=""):
+def mainScript(lat_size, particles, total, probability=0, progress=0, make=False, extra_compile_args=""):
     result_file = f"Results/ClusterSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv"
 
-    if (make == True) and (extra_runtime_args == ""):
+    if (make == True) and (extra_compile_args == ""):
         os.system("make")
     elif make == True:
-        print("gcc " + extra_runtime_args + " DLCA.c -o DLCA.exe -lm")
-        os.system("gcc " + extra_runtime_args + " DLCA.c -o DLCA.exe -lm")
+        print("gcc " + extra_compile_args + " DLCA.c -o DLCA.exe -lm")
+        try:
+            os.system("gcc " + extra_compile_args + " DLCA.c -o DLCA.exe -lm")
+        except:
+            cont = input("Could not compile DLCA.c file, continue? [y/n]")
+            if not cont.lower() is "y":
+                exit()
         print("gcc FracDimDLCA.c -o FracDimDLCA.exe -lm")
-        os.system("gcc FracDimDLCA.c -o FracDimDLCA.exe -lm")
+        try:
+            os.system("gcc FracDimDLCA.c -o FracDimDLCA.exe -lm")
+        except:
+            cont = input("Could not compile GracDimDLCA.c, continue? [y/n]")
+            if not cont.lower() is "y":
+                exit()
         print("gcc PercolatesDLCA.c -o Percolates.exe")
-        os.system("gcc PercolatesDLCA.c -o Percolates.exe")
+        try:
+            os.system("gcc PercolatesDLCA.c -o Percolates.exe")
+        except:
+            cont = input("Could not compile PercolatesDLCA.c file, continue? [y/n]")
+            if not cont.lower() is "y":
+                exit()
 
     main_executable_name = "DLCA"
     fracdim_executable_name = "FracDimDLCA"
@@ -69,7 +84,10 @@ def mainScript(lat_size, particles, total, probability=0, progress="", make=Fals
             start = time.time()  # Starts internal clock
 
             # Run cluster executable:
-            main_return = subprocess.run([main_executable_name, str(lat_size), str(particles), str(probability), progress])
+            if progress != 0:
+                main_return = subprocess.run([main_executable_name, str(lat_size), str(particles), str(probability), str(progress)])
+            else:
+                main_return = subprocess.run([main_executable_name, str(lat_size), str(particles), str(probability)])
             num_clusters = int(main_return.returncode)
             print(num_clusters)
 
@@ -113,10 +131,10 @@ def mainScript(lat_size, particles, total, probability=0, progress="", make=Fals
 
             # copyfile(f"Results/FracDimCountsSize{lat_size}Particles{particles}.csv", f"D:\\ASE III Resultados/{i}FracDimListSize{lat_size}Particles{particles}Prob{probability}.csv")
 
-            if "RGINFO" in extra_runtime_args:
+            if "RGINFO" in extra_compile_args:
                 copyfile(f"Results/RgMassTimeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv", f"D:\\ASE III Resultados/{i}RgMassTimeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv")
 
-            if "CLUSTER_NUMBER" in extra_runtime_args:
+            if "CLUSTER_NUMBER" in extra_compile_args:
                 copyfile(f"Results/NumberTimeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv", f"D:\\ASE III Resultados/{i}NumberTimeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv")
             
 
@@ -137,7 +155,9 @@ if __name__=='__main__':
 
     if '-a' in sys.argv:
         index = sys.argv.index('-a')
-        progress = str(sys.argv[index + 1])
+        progress = int(sys.argv[index + 1])
+    else:
+        progress = 0
 
     if '-m' in sys.argv:
         make = True
@@ -146,10 +166,10 @@ if __name__=='__main__':
 
     if '-o' in sys.argv:
         index = sys.argv.index('-o')
-        extra_runtime_args = str(sys.argv[index + 1])
+        extra_compile_args = str(sys.argv[index + 1])
         make = True
     else:
         extra_runtime_args = ""
 
-    mainScript(lat_size, particles, total, probability=probability, progress=progress, make=make, extra_runtime_args=extra_runtime_args)
+    mainScript(lat_size, particles, total, probability=probability, progress=progress, make=make, extra_compile_args=extra_compile_args)
 
