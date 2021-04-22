@@ -27,25 +27,22 @@ def mainScript(lat_size, particles, total, probability=0, progress=0, make=False
         os.system("make")
     elif make == True:
         print("gcc " + extra_compile_args + " DLCA.c -o DLCA.exe -lm")
-        try:
-            os.system("gcc " + extra_compile_args + " DLCA.c -o DLCA.exe -lm")
-        except:
+        val = os.system("gcc " + extra_compile_args + " DLCA.c -o DLCA.exe -lm")
+        if val != 0:
             cont = input("Could not compile DLCA.c file, continue? [y/n]")
-            if not cont.lower() is "y":
+            if cont.lower() != "y":
                 exit()
         print("gcc FracDimDLCA.c -o FracDimDLCA.exe -lm")
-        try:
-            os.system("gcc FracDimDLCA.c -o FracDimDLCA.exe -lm")
-        except:
+        val = os.system("gcc FracDimDLCA.c -o FracDimDLCA.exe -lm")
+        if val != 0:
             cont = input("Could not compile GracDimDLCA.c, continue? [y/n]")
-            if not cont.lower() is "y":
+            if cont.lower() != "y":
                 exit()
         print("gcc PercolatesDLCA.c -o Percolates.exe")
-        try:
-            os.system("gcc PercolatesDLCA.c -o Percolates.exe")
-        except:
+        val = os.system("gcc PercolatesDLCA.c -o Percolates.exe")
+        if val != 0:
             cont = input("Could not compile PercolatesDLCA.c file, continue? [y/n]")
-            if not cont.lower() is "y":
+            if cont.lower() != "y":
                 exit()
 
     main_executable_name = "DLCA"

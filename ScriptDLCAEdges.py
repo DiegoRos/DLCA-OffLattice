@@ -20,6 +20,154 @@ import pandas as pd
 import numpy as np
 
 
+def mainScript(lat_size, particles, total, probability=0, progress=0, make=False, extra_compile_args=""):
+    result_file = f"Results/EdgeClusterSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv"
+
+    print("gcc " + extra_compile_args + " -D MAX_COORDINATION=2 DLCA.c -o DLCAEdges.exe -lm")
+    val = os.system("gcc " + extra_compile_args + " -D MAX_COORDINATION=2 DLCA.c -o DLCAEdges.exe -lm")
+    if val != 0:
+        cont = input("Could not compile DLCA.c file, continue? [y/n]")
+        if cont.lower() != "y":
+            exit()
+    print("gcc FracDimDLCA.c -o FracDimDLCA.exe -lm")
+    val = os.system("gcc FracDimDLCA.c -o FracDimDLCA.exe -lm")
+    if val != 0:
+        cont = input("Could not compile GracDimDLCA.c, continue? [y/n]")
+        if cont.lower() != "y":
+            exit()
+    print("gcc PercolatesDLCA.c -o Percolates.exe")
+    val = os.system("gcc PercolatesDLCA.c -o Percolates.exe")
+    if val != 0:
+        cont = input("Could not compile PercolatesDLCA.c file, continue? [y/n]")
+        if cont.lower() != "y":
+            exit()
+
+    main_executable_name = "DLCAEdges.exe"
+    # fracdim_executable_name = "FracDimDLCA"
+    percolation_executable_name = "Percolates.exe"
+
+    field_names = ["date_and_time", "elapsed_time_sec", "lattice_size", "num_particles", "num_clusters",
+                    "probability", "percolation", "z_0", "z_1", "z_2", "z_3", "z_4", "z_5", "z_6"]
+    # Create results directory to store a .csv containing results from all clusters.
+    if not os.path.isdir('Final Results'):
+        os.mkdir('Final Results')
+
+    # Creates .csv file for specific cluster lattice size and amount of particles, will store date run, elapsed time,
+    # lattice size, number of particles, fractal dimension and if the cluster percolates the system.
+    if not os.path.isfile('Final Results/ResultsOffLEdge.csv'):
+        with open('Final Results/ResultsOffLEdge.csv', mode='w', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=field_names)
+            writer.writeheader()
+
+    # If a previous file existed this will count the number of lines to only add the amount of required rows.
+    df = pd.read_csv('Final Results/ResultsOffLEdge.csv')
+    try:
+        num_lines = len(df[(df['num_particles'] == int(particles)) & (df['lattice_size'] == int(lat_size)) & (df['probability'] == float(probability))])
+    except:
+        num_lines = 0
+
+    results_sims = []
+    # Runs the main loop and fractal dimension code n times and writes it to .csv to keep results.
+    for i in range(num_lines, total):
+        coordination_count = [0, 0, 0, 0, 0, 0, 0]
+
+        with open('Final Results/ResultsOffLEdge.csv', mode='+a', newline='') as file:
+            dict_writer = csv.DictWriter(file, field_names, delimiter=',')
+
+            date = datetime.datetime.now()  # Gets current date and time
+            start = time.time()  # Starts internal clock
+
+            # Run cluster executable:
+            if progress != 0:
+                main_return = subprocess.run([main_executable_name, str(lat_size), str(particles), str(probability), str(progress)])
+            else:
+                main_return = subprocess.run([main_executable_name, str(lat_size), str(particles), str(probability)])
+            num_clusters = int(main_return.returncode)
+            print(num_clusters)
+
+            cluster = np.loadtxt(result_file, delimiter=',')
+            x, y, indexes, coordination_numbers = np.hsplit(cluster, cluster.shape[1])
+            x = x.flatten()
+            y = y.flatten()
+            indexes = indexes.flatten()
+
+            # with open(f"Results/Rg2ClusterSize{lat_size}Particles{particles}.txt", 'r') as frg:
+            #     rg2 = float(frg.readline())
+
+            print("Extracting coordination numbers: ")
+            coordination_numbers = coordination_numbers.flatten()
+            vals, *_, coordination_results = np.unique(np.array(coordination_numbers), return_counts=True)
+            
+            for v, coord_count in zip(vals, coordination_results):
+                coordination_count[int(v)] = coord_count
+
+            print("Calculating Percolation: ")
+            percolation_return = subprocess.run([percolation_executable_name, str(lat_size), str(particles), str(result_file)])
+            percolation = bool(percolation_return.returncode)
+
+            end = time.time()  # End time for internal clock
+
+            # Writes all values to data base
+            print('Writing')
+            dict_of_elements = dict(zip(field_names, [
+                                    str(date), (end - start), lat_size, particles, num_clusters, probability, percolation,
+                                    int(coordination_count[0]), int(coordination_count[1]), int(coordination_count[2]), 
+                                    int(coordination_count[3]), int(coordination_count[4]), int(coordination_count[5]), 
+                                    int(coordination_count[6])
+                                    ]
+                                ))
+
+            dict_writer.writerow(dict_of_elements)
+            print(dict_of_elements)
+
+
+            copyfile(f"Results/EdgeClusterSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv", f"D:\\ASE III Resultados/{i}EdgeClusterSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv")
+
+            # copyfile(f"Results/FracDimCountsSize{lat_size}Particles{particles}.csv", f"D:\\ASE III Resultados/{i}FracDimListSize{lat_size}Particles{particles}Prob{probability}.csv")
+
+            if "RGINFO" in extra_compile_args:
+                copyfile(f"Results/RgMassTimeEdgeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv", f"D:\\ASE III Resultados/{i}RgMassTimeEdgeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv")
+
+            if "CLUSTER_NUMBER" in extra_compile_args:
+                copyfile(f"Results/NumberTimeEdgeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv", f"D:\\ASE III Resultados/{i}NumberTimeEdgeSize{lat_size}Particles{particles}Prob{float(probability):.6f}.csv")
+            
+
+if __name__=='__main__':
+    if (len(sys.argv) < 4):
+        exit()
+
+    total = int(sys.argv[1])
+    lat_size = int(sys.argv[2])
+    particles = int(sys.argv[3])
+
+
+    if '-p' in sys.argv:
+        index = sys.argv.index('-p')
+        probability = sys.argv[index + 1]
+    else:
+        probability = 0
+
+    if '-a' in sys.argv:
+        index = sys.argv.index('-a')
+        progress = int(sys.argv[index + 1])
+    else:
+        progress = 0
+
+    if '-m' in sys.argv:
+        make = True
+    else:
+        make = False
+
+    if '-o' in sys.argv:
+        index = sys.argv.index('-o')
+        extra_compile_args = str(sys.argv[index + 1])
+        make = True
+    else:
+        extra_runtime_args = ""
+
+    mainScript(lat_size, particles, total, probability=probability, progress=progress, make=make, extra_compile_args=extra_compile_args)
+
+
 def mainScript(lat_size, particles, total, make=True):
     result_file = f"Results/EdgeClusterSize{lat_size}Particles{particles}.csv"
 
@@ -28,7 +176,7 @@ def mainScript(lat_size, particles, total, make=True):
 
     main_executable_name = "DLCAEdges "
     # fracdim_executable_name = "FracDimDLCA "
-    # percolation_executable_name = "Percolates "
+    percolation_executable_name = "Percolates "
 
     field_names = ["date_and_time", "elapsed_time_sec", "lattice_size", "num_particles", "z_1", "z_2", "z_3", "z_4", "z_5", "z_6"]
     # Create results directory to store a .csv containing results from all clusters.

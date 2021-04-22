@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     if '-p' in sys.argv:
         index = sys.argv.index('-p')
-        prob = float(sys.argv[index])
+        prob = float(sys.argv[index + 1])
     else:
         prob = float(0)
 

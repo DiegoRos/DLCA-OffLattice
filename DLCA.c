@@ -18,6 +18,7 @@ int progress; // Gives the amount of steps required to save a progress csv and t
 int gif; // Boolean to check if csv for a gif are required
 float prob_separate;
 int steps_taken = 0;
+int break_condition;
 
 
 int number_of_clusters; // The current number of clusters in the system
@@ -228,6 +229,7 @@ void runSim(){
     int connected; // Boolean that checks if cluster connected
     double *odist = (double *)malloc(sizeof(double));
     steps_taken = 0;
+    break_condition = ((prob_separate <= 0.15) && num_particles > 10000) ? (int)(lat_size * 1000000) : (int) (5 * lat_size * 1000000);
 
     //while(number_of_clusters != 1){
     while(True){ // Will run until break condition is reached
@@ -262,7 +264,8 @@ void runSim(){
 
         step(selected_cluster, dir);
 
-        connected = checkCluster(selected_cluster, dir, connecting_clusters, odist);
+        if (number_of_clusters != 1)
+            connected = checkCluster(selected_cluster, dir, connecting_clusters, odist);
 
         #ifdef MAX_COORDINATION
             if(connected){
@@ -377,7 +380,7 @@ void runSim(){
         }
 
         //Possible Break conditinos to end while loop
-        if(steps_taken >= (int)(lat_size * 1000000)){
+        if(steps_taken >= break_condition){
             printf("Stopped after too many steps: %d\n",steps_taken);
             break;
         }
@@ -1284,7 +1287,7 @@ void resetNumberFile(){
 
     char file_name[60];
     #ifdef MAX_COORDINATION
-        sprintf(file_name, "Results/NumberTimeSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
+        sprintf(file_name, "Results/NumberTimeEdgeSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #else
         sprintf(file_name, "Results/NumberTimeSize%dParticles%dProb%f.csv", lat_size, num_particles, prob_separate);
     #endif

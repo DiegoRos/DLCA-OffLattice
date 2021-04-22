@@ -66,7 +66,6 @@ def centerOfMass(L: int, particles: int, *args) -> tuple:
 
     return center_x, center_y
 
-#FIX
 def moveToCenter(lat_size: int, x: List[float], y: List[float], cx = None, cy = None) -> Tuple[List, List]:
     if cx is None or cy is None:
         num_particles = len(x)
@@ -108,32 +107,42 @@ def rg2(lat_size, particles, x, y):
 
     return Rg2
 
-def rg2c(lat_size, mass1, mass2, cx1, cx2, rg1, rg2, cx_new, cy_new):
-    dcx1, dcy1 = abs((cx_new) - cx1), abs((cy_new) - cy1)
-    dcx2, dcy2 = abs((cx_new) - cx2), abs((cy_new) - cy2)
+# Function that counts the average number of particles per box in different divisions, calculates the size of these boxes,
+# and calculates the amount of boxes that contain particles for a given division size.
+def boxCount(L: int, particles: int, x: List[float], y: List[float]) -> Tuple[list, list, list]:
+    div = 4 + (4 * (particles <= 8000)) # Sets start division
+    break_condition = 2 + (2 * (L > 100)) # Sets ending place for amount of divisions
+    box_count = [] # List containing the amount of boxes with particles
+    avg_counts = [] # List containing the amount of particles average per box
+    box_size = [] # List containing the size of the current boxes
+    while True: # Emulation of do while loop to calculate individual vales to put into previous lists
+        boxcount = 0
+        division = L / div
 
-    if (dcx1 > (lat_size / 2)):
-        dcx1 = lat_size - dcx1
+        if division < break_condition: # Ends do while loop
+            break
 
-    if (dcy1 > (lat_size / 2)):
-        dcy1 = lat_size - dcy1
+        for i in range(1,div+1):
+            for j in range(1,div+1):
+                lower_x = ((i - 1) * division)
+                upper_x = (i * division)
+                lower_y = ((j-1) * division)
+                upper_y = (j * division)
+                for xi, yi in zip(x, y):
+                    if lower_x <= xi <= upper_x and lower_y <= yi <= upper_y:
+                        boxcount += 1
+                        break # If a box contains 1 particle the code can move on to the next
 
+        # Appends found values to the lists
+        box_count.append(boxcount)
+        avg_counts.append(particles/boxcount)
+        box_size.append(division)
 
-    if (dcx2 > (lat_size / 2)):
-        dcx2 = lat_size - dcx2
+        print("{:.3f} divisions with minimum {}".format(division, break_condition))
 
-    if (dcy2 > (lat_size / 2)):
-        dcy2 = lat_size - dcy2
+        div *= 2
 
-    h1 = pow(dcx1, 2) + pow(dcy1, 2)
-    h2 = pow(dcx2, 2) + pow(dcy2, 2)
-
-    rg2_cm11 = rg1 + h1
-    rg2_cm12 = rg2 + h2
-
-    rg2_f = ((mass1 * rg2_cm11) + (mass2 * rg2_cm12)) / (mass1 + mass2)
-
-    return rg2_f
+    return box_count, avg_counts, box_size
 
 
 if __name__ == "__main__":
