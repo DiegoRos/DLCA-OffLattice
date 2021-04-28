@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from FunctionsDLCA import *
 
-def plot(lat_size, particles, file_name, center = False):
+def plot(lat_size, particles, file_name, probability=0, center=False):
     cluster = np.loadtxt(file_name, delimiter=',')
 
     x, y, indexes, *_ = np.hsplit(cluster, cluster.shape[1])
@@ -20,7 +20,7 @@ def plot(lat_size, particles, file_name, center = False):
     fig = plt.figure(figsize= (9,9))
     ax = fig.add_subplot(1, 1, 1)
 
-    ax.set_title("DLCA Cluster L = {}, Particles = {}".format(lat_size, particles), fontsize = 16)
+    ax.set_title("DLCA Cluster L = {}, Particles = {} \n Probability = {}".format(lat_size, particles, probability), fontsize = 16)
     rad = 1 / 2
     for xi, yi, index in zip(x, y,indexes):
         circ = plt.Circle((xi,yi), rad, color = cividis(index / (np.amax(indexes) + 1)))
@@ -67,6 +67,6 @@ if __name__ == "__main__":
     else:
         center = False
 
-    plot(lat_size, particles, file_name, center=center)
+    plot(lat_size, particles, file_name, probability=prob, center=center)
 
     plt.show()

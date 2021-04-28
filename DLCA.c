@@ -15,7 +15,6 @@ int num_particles; // Amount of particles in the system
 int lat_size; // Size of lattice of the system
 int ring_size; // Diameter of particles and the distance of interaction between them
 int progress; // Gives the amount of steps required to save a progress csv and to print an update to the console
-int gif; // Boolean to check if csv for a gif are required
 float prob_separate;
 int steps_taken = 0;
 int break_condition;
@@ -229,7 +228,7 @@ void runSim(){
     int connected; // Boolean that checks if cluster connected
     double *odist = (double *)malloc(sizeof(double));
     steps_taken = 0;
-    break_condition = ((prob_separate <= 0.15) && num_particles > 10000) ? (int)(lat_size * 1000000) : (int) (5 * lat_size * 1000000);
+    break_condition = ((prob_separate <= 0.15) && num_particles < 10000) ? (int)(lat_size * 1000000) : (int) (5 * lat_size * 1000000);
 
     //while(number_of_clusters != 1){
     while(True){ // Will run until break condition is reached
@@ -364,7 +363,7 @@ void runSim(){
             #endif
 
             #ifdef GIF
-                sprintf(gif_file_name, "Animation/ClusterSize%dParticles%dProb%fSteps%d.csv", lat_size, num_particles, prob_separate, steps_taken);
+                sprintf(gif_file_name, "Animation/%d-ClusterSize%dParticles%dProb%f.csv", steps_taken, lat_size, num_particles, prob_separate);
                 gif = fopen(gif_file_name, "w");
 
                 for(int i = 0; i < num_particles; i++){
@@ -404,6 +403,16 @@ void runSim(){
     free(odist);
 
     printf("Total number of clusters %d\n", number_of_clusters);
+    #ifdef GIF
+        sprintf(gif_file_name, "Animation/%d-ClusterSize%dParticles%dProb%f.csv", steps_taken, lat_size, num_particles, prob_separate);
+        gif = fopen(gif_file_name, "w");
+
+        for(int i = 0; i < num_particles; i++){
+            fprintf(gif, "%lf,%lf,%d\n", particle_list[i].x, particle_list[i].y,particle_list[i].index);
+        }
+
+        fclose(gif);
+    #endif
     //Delete Partial Results File
     remove(middle_file_name);
 
