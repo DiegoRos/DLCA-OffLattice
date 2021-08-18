@@ -16,8 +16,8 @@ int lat_size; // Size of lattice of the system
 int ring_size; // Diameter of particles and the distance of interaction between them
 int progress; // Gives the amount of steps required to save a progress csv and to print an update to the console
 float prob_separate;
-int steps_taken = 0;
-int break_condition;
+unsigned long long steps_taken = 0;
+unsigned long long break_condition;
 
 
 int number_of_clusters; // The current number of clusters in the system
@@ -162,7 +162,6 @@ int main(int argc, char *argv[]){
     	srand((unsigned)time(NULL)); // Set random seed 
     #endif
 
-
     printf("Allocating Memory...\n");
     allocate_memory();
 
@@ -228,7 +227,9 @@ void runSim(){
     int connected; // Boolean that checks if cluster connected
     double *odist = (double *)malloc(sizeof(double));
     steps_taken = 0;
-    break_condition = ((prob_separate <= 0.15) && num_particles < 10000) ? (int)(lat_size * 1000000) : (int) (5 * lat_size * 1000000);
+    // break_condition = 10000;
+    // break_condition = ((prob_separate <= 0.15) && num_particles < 10000) ? (int)(lat_size * 1000000) : (int) (5 * lat_size * 1000000);
+    break_condition = 50 * lat_size * 10000000000;
 
     //while(number_of_clusters != 1){
     while(True){ // Will run until break condition is reached
@@ -363,7 +364,7 @@ void runSim(){
             #endif
 
             #ifdef GIF
-                sprintf(gif_file_name, "Animation/%d-ClusterSize%dParticles%dProb%f.csv", steps_taken, lat_size, num_particles, prob_separate);
+                sprintf(gif_file_name, "Animation/%llu-ClusterSize%iParticles%iProb%f.csv", steps_taken, lat_size, num_particles, prob_separate);
                 gif = fopen(gif_file_name, "w");
 
                 for(int i = 0; i < num_particles; i++){
@@ -404,7 +405,7 @@ void runSim(){
 
     printf("Total number of clusters %d\n", number_of_clusters);
     #ifdef GIF
-        sprintf(gif_file_name, "Animation/%d-ClusterSize%dParticles%dProb%f.csv", steps_taken, lat_size, num_particles, prob_separate);
+        sprintf(gif_file_name, "Animation/%llu-ClusterSize%iParticles%iProb%f.csv", steps_taken, lat_size, num_particles, prob_separate);
         gif = fopen(gif_file_name, "w");
 
         for(int i = 0; i < num_particles; i++){

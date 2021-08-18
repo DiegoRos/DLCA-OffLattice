@@ -30,41 +30,46 @@ def mainGif(lat_size, partilces, probability=0, run_sim=True):
             print()
 
         progress = int(input("Enter progress values: "))
-        subprocess.run(["DLCAGif.exe", str(lat_size), str(particles), str(probability), str(progress)])
+        if progress:
+            subprocess.run(["DLCAGif.exe", str(lat_size), str(particles), str(probability), str(progress)])
+        else:
+            subprocess.run(["DLCAGif.exe", str(lat_size), str(particles), str(probability)])
 
-        print("Creating Images")
-        text_files = [f for f in os.listdir("Animation") if (cluster_fn in f) and (str(int(lat_size)) in f) and (str(int(particles)) in f) and (str(float(probability)) in f) and (f.endswith(".csv"))]
-        text_files = sorted(text_files, key=lambda x: int(x.split('-')[0]))
-        for i, file_i in enumerate(text_files):
+    print("Creating Images")
 
-            cluster = np.loadtxt(animation_folder + file_i, delimiter = ',')
+    text_files = [f for f in os.listdir("Animation") if (cluster_fn in f) and (str(int(lat_size)) in f) and (str(int(particles)) in f) and (str(float(probability)) in f) and (f.endswith(".csv"))]
 
-            x, y, index = np.hsplit(cluster, cluster.shape[1])
-            x = x.flatten()
-            y = y.flatten()
-            indexes = index.flatten().astype(int)
-            max_indexes = int(np.max(indexes)) + 1
+    text_files = sorted(text_files, key=lambda x: int(x.split('-')[0]))
+    for i, file_i in enumerate(text_files):
 
-            cividis = cm.get_cmap("cividis", max_indexes)
-            fig = plt.figure(figsize=(9, 9))
-            ax = fig.add_subplot(1, 1, 1)
-            if probability != 0:
-                ax.set_title(f"DLCA Reversible Cluster Lattice Size = {lat_size}, \nParticles = {particles} & Probability = {probability}")
-            else:
-                ax.set_title(f"DLCA Cluster Lattice Size = {lat_size}, Particles = {particles}")
-            rad = 1 / 2
-            
-            for xi, yi, index in zip(x, y, indexes):
-                circ = plt.Circle((xi, yi), rad, color = cividis(index / max_indexes))
-                ax.add_patch(circ)
-            ax.set_xlim(0, lat_size)
-            ax.set_ylim(0, lat_size)
-            ax.set_xlabel("x")
-            ax.set_ylabel("y")
-            fig.savefig(f"Animation/{i}-ClusterSize{lat_size}Particles{particles}Prob{probability}.png", dpi=200)
-            plt.close()
+        cluster = np.loadtxt(animation_folder + file_i, delimiter = ',')
 
-            os.remove(animation_folder + file_i)
+        x, y, index = np.hsplit(cluster, cluster.shape[1])
+        x = x.flatten()
+        y = y.flatten()
+        indexes = index.flatten().astype(int)
+        max_indexes = int(np.max(indexes)) + 1
+
+        cividis = cm.get_cmap("cividis", max_indexes)
+        fig = plt.figure(figsize=(9, 9))
+        ax = fig.add_subplot(1, 1, 1)
+        if probability != 0:
+            ax.set_title(f"DLCA Reversible Cluster Lattice Size = {lat_size}, \nParticles = {particles} & Probability = {probability}")
+        else:
+            ax.set_title(f"DLCA Cluster Lattice Size = {lat_size}, Particles = {particles}")
+        rad = 1 / 2
+        
+        for xi, yi, index in zip(x, y, indexes):
+            circ = plt.Circle((xi, yi), rad, color = cividis(index / max_indexes))
+            ax.add_patch(circ)
+        ax.set_xlim(0, lat_size)
+        ax.set_ylim(0, lat_size)
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        fig.savefig(f"Animation/{i}-ClusterSize{lat_size}Particles{particles}Prob{probability}.png", dpi=200)
+        plt.close()
+
+        os.remove(animation_folder + file_i)
 
     print("Creating Movie")
     with imageio.get_writer(f'Animation/MovieSize{lat_size}Particles{particles}Prob{probability}.gif', mode='I') as writer:
