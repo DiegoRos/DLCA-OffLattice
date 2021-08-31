@@ -59,13 +59,13 @@ dkms.conf
 *.png
 *.jpeg
 
-#Jupyter Notebook Files
-*.ipynb
-
 #Result Files
 *.csv
 *.txt
 *.pkl
+
+#Conda directories
+.ipynb_checkpoints
 
 #Generic Directories
 .vscode/
